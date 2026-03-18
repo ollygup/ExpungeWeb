@@ -1,0 +1,84 @@
+<!-- pdf-viewer.component.html -->
+<div class="viewer-root">
+
+  <!-- ── Empty / Upload State ─────────────────────────────── -->
+  @if (!pdfLoaded) {
+    <div class="viewer-empty">
+      <div class="empty-icon-wrap">
+        <mat-icon class="mat-icon-lg">picture_as_pdf</mat-icon>
+      </div>
+      <h3 class="empty-title">No document loaded</h3>
+      <p class="empty-body">Upload a PDF to begin redacting.</p>
+      <div class="empty-hint">
+        <mat-icon class="mat-icon-sm">cloud_upload</mat-icon>
+        Drag & drop anywhere or use the upload button
+      </div>
+    </div>
+  }
+
+  <!-- ── PDF Canvas View ───────────────────────────────────── -->
+  @if (pdfLoaded) {
+    <div class="viewer-body">
+
+      <!-- Toolbar -->
+      <div class="viewer-toolbar">
+
+        <div class="toolbar-group">
+          <button class="tool-btn" matTooltip="Previous page" [disabled]="currentPage <= 1" (click)="prevPage()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+
+          <span class="page-info">
+            <input class="page-input"
+                   type="number"
+                   [value]="currentPage"
+                   [min]="1"
+                   [max]="totalPages"
+                   (change)="goToPage(+$any($event.target).value)">
+            <span class="page-sep">/</span>
+            <span class="page-total">{{ totalPages }}</span>
+          </span>
+
+          <button class="tool-btn" matTooltip="Next page" [disabled]="currentPage >= totalPages" (click)="nextPage()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="toolbar-group">
+          <button class="tool-btn" matTooltip="Zoom out" (click)="zoomOut()">
+            <mat-icon>zoom_out</mat-icon>
+          </button>
+          <span class="zoom-label">{{ zoom }}%</span>
+          <button class="tool-btn" matTooltip="Zoom in" (click)="zoomIn()">
+            <mat-icon>zoom_in</mat-icon>
+          </button>
+          <button class="tool-btn" matTooltip="Fit to window" (click)="zoomFit()">
+            <mat-icon>fit_screen</mat-icon>
+          </button>
+        </div>
+
+        @if (isRendering) {
+          <div class="render-indicator">
+            <span class="spin-ring"></span>
+          </div>
+        }
+      </div>
+
+      <!-- Canvas scroll area -->
+      <div class="canvas-scroll" #scrollArea>
+        <div class="canvas-wrap"
+             [style.transform]="'scale(' + zoomScale + ')'"
+             [style.transform-origin]="'top center'">
+          <!-- Single canvas - pdf-lib bakes redactions into the PDF bytes
+               so there's no need for a separate overlay canvas.
+               PDF.js re-renders the modified bytes after each redaction. -->
+          <canvas #pdfCanvas class="pdf-canvas"></canvas>
+        </div>
+      </div>
+
+    </div>
+  }
+
+</div>

@@ -1,0 +1,161 @@
+<!-- redaction.component.html -->
+<div class="redaction-root">
+
+  <!-- ── No PDF loaded guard ────────────────────────────────── -->
+  @if (!pdfIsLoaded()) {
+    <div class="info-banner info-banner--warn">
+      <mat-icon>info_outline</mat-icon>
+      <span>Upload a PDF document to use the redaction tool.</span>
+    </div>
+  }
+
+  <!-- ── Search form ─────────────────────────────────────────── -->
+  @if (pdfIsLoaded()) {
+    <div class="search-row">
+      <div class="search-input-wrap">
+        <mat-icon class="search-prefix-icon">search</mat-icon>
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Find text to redact…"
+          [(ngModel)]="searchInput"
+          (keydown.enter)="onSearch()"
+          [disabled]="isSearching() || isRedacting()"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        @if (searchInput) {
+          <button
+            class="clear-input-btn"
+            type="button"
+            (click)="onClear()"
+            matTooltip="Clear"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </div>
+
+      <button
+        class="btn btn--primary"
+        type="button"
+        (click)="onSearch()"
+        [disabled]="!searchInput.trim() || isSearching() || isRedacting()"
+      >
+        @if (isSearching()) {
+          <mat-icon class="spin-icon">autorenew</mat-icon>
+        } @else {
+          <mat-icon>search</mat-icon>
+        }
+        <span>{{ isSearching() ? 'Searching…' : 'Search' }}</span>
+      </button>
+    </div>
+  }
+
+  <!-- ── Error message ──────────────────────────────────────── -->
+  @if (errorMessage()) {
+    <div class="info-banner info-banner--error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- ── Success message ────────────────────────────────────── -->
+  @if (successMessage()) {
+    <div class="info-banner info-banner--success">
+      <mat-icon>check_circle_outline</mat-icon>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  <!-- ── No results ─────────────────────────────────────────── -->
+  @if (hasSearched() && matchCount() === 0 && !isSearching()) {
+    <div class="no-results">
+      <mat-icon>search_off</mat-icon>
+      <p>No occurrences of <strong>"{{ searchTerm() }}"</strong> found.</p>
+    </div>
+  }
+
+  <!-- ── Results summary + redact CTA ──────────────────────── -->
+  @if (matchCount() > 0) {
+    <div class="results-summary">
+      <div class="summary-stats">
+        <span class="badge badge--count">{{ matchCount() }} match{{ matchCount() !== 1 ? 'es' : '' }}</span>
+        <span class="badge badge--pages">{{ uniquePages().length }} page{{ uniquePages().length !== 1 ? 's' : '' }}</span>
+        <span class="summary-term">"<em>{{ searchTerm() }}</em>"</span>
+      </div>
+
+      <button
+        class="btn btn--danger"
+        type="button"
+        (click)="onRedact()"
+        [disabled]="!canRedact()"
+        matTooltip="Permanently black out all occurrences in the PDF"
+      >
+        <mat-icon>hide_source</mat-icon>
+        <span>Redact All {{ matchCount() }} Occurrence{{ matchCount() !== 1 ? 's' : '' }}</span>
+      </button>
+    </div>
+  }
+
+  <!-- ── Redaction progress ─────────────────────────────────── -->
+  @if (isRedacting()) {
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <mat-icon class="spin-icon">autorenew</mat-icon>
+        @if (redactionProgress(); as p) {
+          <span>Processing page {{ p.page }} of {{ p.total }}…</span>
+        } @else {
+          <span>Initialising…</span>
+        }
+      </div>
+      <div class="progress-bar-track">
+        <div
+          class="progress-bar-fill"
+          [style.width.%]="redactionProgress()
+            ? (redactionProgress()!.page / redactionProgress()!.total) * 100
+            : 0"
+        ></div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Download (after successful redaction) ──────────────── -->
+  @if (redactedBytes() && !isRedacting()) {
+    <div class="download-row">
+      <button class="btn btn--download" type="button" (click)="onDownload()">
+        <mat-icon>download</mat-icon>
+        <span>Download Redacted PDF</span>
+      </button>
+      <span class="filename-hint">{{ redactedFilename() }}</span>
+    </div>
+  }
+
+  <!-- ── Matches list ───────────────────────────────────────── -->
+  @if (matchCount() > 0 && !isRedacting()) {
+    <div class="matches-list">
+      @for (group of matchesByPage(); track group.page) {
+        <div class="match-page-group">
+
+          <div class="match-page-header">
+            <mat-icon>description</mat-icon>
+            <span>Page {{ group.page }}</span>
+            <span class="group-count">{{ group.matches.length }} hit{{ group.matches.length !== 1 ? 's' : '' }}</span>
+          </div>
+
+          @for (match of group.matches; track $index) {
+            <div class="match-item">
+              <span class="match-index">{{ $index + 1 }}</span>
+              <span
+                class="match-context"
+                [innerHTML]="highlightTerm(match.context, match.term)"
+              ></span>
+            </div>
+          }
+
+        </div>
+      }
+    </div>
+  }
+
+</div>

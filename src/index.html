@@ -1,13 +1,44 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>ExpungeWeb</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
-<body>
-  <app-root></app-root>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Expunge — Offline PDF Redaction</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Expunge — true, permanent PDF redaction that runs entirely on your device. No uploads, no cloud, no accounts." />
+    <meta name="theme-color" content="#080a10" />
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="manifest" href="manifest.webmanifest" />
+
+    <meta property="og:title" content="Expunge — Offline PDF Redaction" />
+    <meta property="og:description" content="True, permanent PDF redaction that runs entirely on your device. No uploads, no cloud, no accounts." />
+    <meta property="og:image" content="https://expunge.vercel.app/og-image.jpg" />
+    <meta property="og:url" content="https://expunge.vercel.app" />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Expunge — Offline PDF Redaction" />
+    <meta name="twitter:description" content="True, permanent PDF redaction that runs entirely on your device. No uploads, no cloud, no accounts." />
+    <meta name="twitter:image" content="https://expunge.vercel.app/og-image.jpg" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Expunge",
+        "url": "https://expunge.vercel.app",
+        "description": "True, permanent PDF redaction that runs entirely on your device.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any"
+      }
+    </script>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  </head>
+
+  <body>
+    <app-root></app-root>
+  </body>
 </html>
