@@ -3,9 +3,10 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
 
 import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy, PDFPageProxy, PageViewport, RenderTask } from 'pdfjs-dist';
+import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 
 import { IndexedDbService } from './indexed-db.service';
+import { TextItem } from 'pdfjs-dist/types/src/display/api';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.origin + '/assets/pdf.worker.min.mjs';
 
@@ -14,25 +15,19 @@ export class PdfService {
 
   private idb = inject(IndexedDbService);
 
-  // ── Signals (reactive state) ───────────────────────────────────
+  // ── Signals ────────────────────────────────────────────────────────────────
   readonly currentBytes = signal<Uint8Array | null>(null);
   readonly filename = signal<string>('');
   readonly totalPagesSignal = signal<number>(0);
   readonly isLoaded = computed(() => this.currentBytes() !== null);
 
-  // ── Observables consumed by non-signal components ─────────────
-  /** Emits true once a document is loaded, false after clear. */
   readonly pdfLoaded$ = toObservable(this.isLoaded);
   readonly filename$ = toObservable(this.filename);
 
-  /** Fires whenever bytes change and a re-render is needed. */
   readonly renderTrigger$ = new Subject<void>();
 
-  // Convenience getter so template / component code can read
-  // totalPages as a plain number without calling the signal.
   get totalPages(): number { return this.totalPagesSignal(); }
 
-  // ── Internal page info (set by the viewer after each render) ───
   private _currentPageInfo = { page: 1, scale: 1 };
 
   setCurrentPageInfo(page: number, scale: number): void {
@@ -46,19 +41,17 @@ export class PdfService {
   private pdfJsDoc: PDFDocumentProxy | null = null;
 
   constructor() {
-    // Persist bytes to IDB whenever they change.
     effect(() => {
       const bytes = this.currentBytes();
       const filename = this.filename();
       if (!bytes || !filename) return;
-
       this.idb.updateCurrentBytes(bytes).catch(err =>
-        console.error('[PdfService] IDB persist failed:', err)
+        console.error('[PdfService] IDB persist failed:', err),
       );
     });
   }
 
-  // ── Load ──────────────────────────────────────────────────────
+  // ── Load ───────────────────────────────────────────────────────────────────
   async loadFromIndexedDB(): Promise<boolean> {
     const stored = await this.idb.load();
     if (!stored) return false;
@@ -80,52 +73,106 @@ export class PdfService {
     this.renderTrigger$.next();
   }
 
-  // ── Render ────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   async renderPage(pageNum: number, canvas: HTMLCanvasElement, zoomScale = 1): Promise<void> {
     if (!this.pdfJsDoc) return;
 
-    const page: PDFPageProxy = await this.pdfJsDoc.getPage(pageNum);
-    const viewport: PageViewport = page.getViewport({ scale: zoomScale * 1.5 });
+    const dpr = Math.max(window.devicePixelRatio || 1, 2);
+    const page = await this.pdfJsDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: zoomScale * dpr });
 
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    canvas.style.width = `${Math.floor(viewport.width / dpr)}px`;
+    canvas.style.height = `${Math.floor(viewport.height / dpr)}px`;
+
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const renderTask: RenderTask = page.render({ canvas, viewport });
     await renderTask.promise;
   }
 
-  // ── commitBytes: contract for all feature services ─────────────
+  // ── commitBytes ────────────────────────────────────────────────────────────
   async commitBytes(newBytes: Uint8Array): Promise<void> {
     await this.initDocument(newBytes, this.filename());
     this.renderTrigger$.next();
   }
 
-  // ── Internal ──────────────────────────────────────────────────
+  // ── Internal ───────────────────────────────────────────────────────────────
   async initDocument(bytes: Uint8Array, name: string): Promise<void> {
-    const copy = bytes.slice(); // pdfjs may detach the buffer
+    const copy = bytes.slice();
     this.pdfJsDoc = await pdfjsLib.getDocument({ data: copy }).promise;
-
     this.filename.set(name);
     this.totalPagesSignal.set(this.pdfJsDoc.numPages);
     this.currentBytes.set(bytes);
   }
 
-  /**
-   * Expose raw PDFPageProxy for feature services (e.g. text search).
-   * Returns null if no document is loaded.
-   */
   getPage(pageNum: number): Promise<PDFPageProxy> | null {
     return this.pdfJsDoc ? this.pdfJsDoc.getPage(pageNum) : null;
   }
 
-  /**
-   * Returns the full text content of a page (used by search).
-   */
+  getPdfJsDoc(): PDFDocumentProxy | null {
+    return this.pdfJsDoc;
+  }
+
   async getPageText(pageNum: number): Promise<string> {
     const pagePromise = this.getPage(pageNum);
     if (!pagePromise) return '';
     const page = await pagePromise;
     const content = await page.getTextContent();
     return content.items.map((item: any) => item.str ?? '').join(' ');
+  }
+
+  /**
+   * Returns PDF-space bounding rects for all text items on a page that
+   * contain the search term. Used by the highlight overlay in the PDF viewer.
+   *
+   * PDF.js text items carry a `transform` array [a, b, c, d, x, y] where
+   * x/y is the glyph origin in PDF coordinate space (bottom-left origin).
+   * `width` and `height` give the item dimensions in the same space.
+   */
+  async getPageTextMatchRects(
+    pageNum: number,
+    term: string,
+  ): Promise<[number, number, number, number][]> {
+    const pagePromise = this.getPage(pageNum);
+    if (!pagePromise) return [];
+
+    const page = await pagePromise;
+    const content = await page.getTextContent();
+    const termLower = term.toLowerCase();
+    const rects: [number, number, number, number][] = [];
+
+    for (const item of content.items) {
+      const ti = item as TextItem;
+      if (!ti.str || !ti.str.toLowerCase().includes(termLower)) continue;
+
+      const [, , , , x, y] = ti.transform;
+      const w = ti.width ?? 0;
+      const h = ti.height ?? 10; // fallback if height not provided
+
+      if (w <= 0) continue;
+
+      // PDF space: origin bottom-left, y increases upward.
+      // The glyph origin (x, y) is at the text baseline.
+      // We expand slightly above/below baseline for a visible highlight box.
+      rects.push([x, y - h * 0.15, x + w, y + h * 0.85]);
+    }
+
+    return rects;
+  }
+
+  // ── Download ───────────────────────────────────────────────────────────────
+  downloadCurrent(): void {
+    const bytes = this.currentBytes();
+    if (!bytes) return;
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = this.filename() || 'redacted.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

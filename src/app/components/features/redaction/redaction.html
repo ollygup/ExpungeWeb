@@ -1,161 +1,212 @@
 <!-- redaction.component.html -->
 <div class="redaction-root">
 
-  <!-- ── No PDF loaded guard ────────────────────────────────── -->
+  <!-- ── No PDF loaded ──────────────────────────────────────────────────────── -->
   @if (!pdfIsLoaded()) {
-    <div class="info-banner info-banner--warn">
-      <mat-icon>info_outline</mat-icon>
-      <span>Upload a PDF document to use the redaction tool.</span>
-    </div>
+  <div class="empty-state">
+    <mat-icon>picture_as_pdf</mat-icon>
+    <p>Upload a PDF to begin</p>
+  </div>
   }
 
-  <!-- ── Search form ─────────────────────────────────────────── -->
   @if (pdfIsLoaded()) {
-    <div class="search-row">
-      <div class="search-input-wrap">
-        <mat-icon class="search-prefix-icon">search</mat-icon>
-        <input
-          class="search-input"
-          type="text"
-          placeholder="Find text to redact…"
-          [(ngModel)]="searchInput"
-          (keydown.enter)="onSearch()"
-          [disabled]="isSearching() || isRedacting()"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        @if (searchInput) {
-          <button
-            class="clear-input-btn"
-            type="button"
-            (click)="onClear()"
-            matTooltip="Clear"
-          >
-            <mat-icon>close</mat-icon>
-          </button>
-        }
-      </div>
 
-      <button
-        class="btn btn--primary"
-        type="button"
-        (click)="onSearch()"
-        [disabled]="!searchInput.trim() || isSearching() || isRedacting()"
-      >
-        @if (isSearching()) {
-          <mat-icon class="spin-icon">autorenew</mat-icon>
-        } @else {
-          <mat-icon>search</mat-icon>
-        }
-        <span>{{ isSearching() ? 'Searching…' : 'Search' }}</span>
+  <!-- ── Search row: [input] [OCR toggle] [search btn] ────────────────────── -->
+  <div class="search-row">
+    <div class="search-input-wrap">
+      <mat-icon class="search-icon">search</mat-icon>
+      <input class="search-input" type="text" placeholder="Find text to redact…" [(ngModel)]="searchInput"
+        (keydown.enter)="onSearch()" [disabled]="isSearching() || isOcrSearching() || isRedacting()" autocomplete="off"
+        spellcheck="false" />
+      @if (searchInput) {
+      <button class="clear-btn" type="button" (click)="onClear()">
+        <mat-icon>close</mat-icon>
       </button>
-    </div>
-  }
-
-  <!-- ── Error message ──────────────────────────────────────── -->
-  @if (errorMessage()) {
-    <div class="info-banner info-banner--error">
-      <mat-icon>error_outline</mat-icon>
-      <span>{{ errorMessage() }}</span>
-    </div>
-  }
-
-  <!-- ── Success message ────────────────────────────────────── -->
-  @if (successMessage()) {
-    <div class="info-banner info-banner--success">
-      <mat-icon>check_circle_outline</mat-icon>
-      <span>{{ successMessage() }}</span>
-    </div>
-  }
-
-  <!-- ── No results ─────────────────────────────────────────── -->
-  @if (hasSearched() && matchCount() === 0 && !isSearching()) {
-    <div class="no-results">
-      <mat-icon>search_off</mat-icon>
-      <p>No occurrences of <strong>"{{ searchTerm() }}"</strong> found.</p>
-    </div>
-  }
-
-  <!-- ── Results summary + redact CTA ──────────────────────── -->
-  @if (matchCount() > 0) {
-    <div class="results-summary">
-      <div class="summary-stats">
-        <span class="badge badge--count">{{ matchCount() }} match{{ matchCount() !== 1 ? 'es' : '' }}</span>
-        <span class="badge badge--pages">{{ uniquePages().length }} page{{ uniquePages().length !== 1 ? 's' : '' }}</span>
-        <span class="summary-term">"<em>{{ searchTerm() }}</em>"</span>
-      </div>
-
-      <button
-        class="btn btn--danger"
-        type="button"
-        (click)="onRedact()"
-        [disabled]="!canRedact()"
-        matTooltip="Permanently black out all occurrences in the PDF"
-      >
-        <mat-icon>hide_source</mat-icon>
-        <span>Redact All {{ matchCount() }} Occurrence{{ matchCount() !== 1 ? 's' : '' }}</span>
-      </button>
-    </div>
-  }
-
-  <!-- ── Redaction progress ─────────────────────────────────── -->
-  @if (isRedacting()) {
-    <div class="progress-wrap">
-      <div class="progress-label">
-        <mat-icon class="spin-icon">autorenew</mat-icon>
-        @if (redactionProgress(); as p) {
-          <span>Processing page {{ p.page }} of {{ p.total }}…</span>
-        } @else {
-          <span>Initialising…</span>
-        }
-      </div>
-      <div class="progress-bar-track">
-        <div
-          class="progress-bar-fill"
-          [style.width.%]="redactionProgress()
-            ? (redactionProgress()!.page / redactionProgress()!.total) * 100
-            : 0"
-        ></div>
-      </div>
-    </div>
-  }
-
-  <!-- ── Download (after successful redaction) ──────────────── -->
-  @if (redactedBytes() && !isRedacting()) {
-    <div class="download-row">
-      <button class="btn btn--download" type="button" (click)="onDownload()">
-        <mat-icon>download</mat-icon>
-        <span>Download Redacted PDF</span>
-      </button>
-      <span class="filename-hint">{{ redactedFilename() }}</span>
-    </div>
-  }
-
-  <!-- ── Matches list ───────────────────────────────────────── -->
-  @if (matchCount() > 0 && !isRedacting()) {
-    <div class="matches-list">
-      @for (group of matchesByPage(); track group.page) {
-        <div class="match-page-group">
-
-          <div class="match-page-header">
-            <mat-icon>description</mat-icon>
-            <span>Page {{ group.page }}</span>
-            <span class="group-count">{{ group.matches.length }} hit{{ group.matches.length !== 1 ? 's' : '' }}</span>
-          </div>
-
-          @for (match of group.matches; track $index) {
-            <div class="match-item">
-              <span class="match-index">{{ $index + 1 }}</span>
-              <span
-                class="match-context"
-                [innerHTML]="highlightTerm(match.context, match.term)"
-              ></span>
-            </div>
-          }
-
-        </div>
       }
     </div>
+
+    <!-- OCR toggle — right of input, left of search button -->
+    <button class="ocr-toggle" type="button" [class.ocr-toggle--on]="ocrEnabled()"
+      (click)="ocrEnabled.set(!ocrEnabled())"
+      matTooltip="{{ ocrEnabled() ? 'OCR on — scanning image text' : 'OCR off — click to scan images too' }}"
+      matTooltipPosition="below">
+      <mat-icon>image_search</mat-icon>
+      <span>OCR</span>
+    </button>
+
+    <button class="search-btn" type="button" (click)="onSearch()"
+      [disabled]="!searchInput.trim() || isSearching() || isOcrSearching() || isRedacting()">
+      @if (isSearching() || isOcrSearching()) {
+      <mat-icon class="spin-icon">autorenew</mat-icon>
+      } @else {
+      <mat-icon>search</mat-icon>
+      }
+    </button>
+  </div>
+
+  <!-- ── Persistent action bar — always below search ──────────────────────── -->
+  <div class="action-bar" [class.action-bar--has-results]="totalMatchCount() > 0">
+
+    @if (isRedacting()) {
+    <!-- Redaction in progress -->
+    <div class="action-bar__progress">
+      <mat-icon class="spin-icon">autorenew</mat-icon>
+      @if (redactionProgress(); as p) {
+      <span>Redacting — page {{ p.page }} of {{ p.total }}</span>
+      } @else {
+      <span>Initialising…</span>
+      }
+    </div>
+    <div class="action-bar__track">
+      <div class="action-bar__fill" [style.width.%]="redactionProgress()
+              ? (redactionProgress()!.page / redactionProgress()!.total) * 100
+              : 0"></div>
+    </div>
+
+    } @else if (isSearching() || isOcrSearching()) {
+    <!-- Search in progress -->
+    <div class="action-bar__status">
+      <mat-icon class="spin-icon">{{ isOcrSearching() ? 'image_search' : 'search' }}</mat-icon>
+      @if (isOcrSearching() && ocrProgress(); as p) {
+      <span>Scanning images — page {{ p.page }} of {{ p.total }}</span>
+      } @else {
+      <span>Searching…</span>
+      }
+    </div>
+
+    } @else if (hasSearched() && totalMatchCount() === 0) {
+    <!-- No results -->
+    <div class="action-bar__status action-bar__status--empty">
+      <mat-icon>search_off</mat-icon>
+      <span>No matches for "<strong>{{ searchTerm() }}</strong>"</span>
+    </div>
+
+    } @else if (totalMatchCount() > 0) {
+    <!-- Has results -->
+    <div class="action-bar__count">
+      <span class="count-num">{{ totalMatchCount() }}</span>
+      <span class="count-label">match{{ totalMatchCount() !== 1 ? 'es' : '' }}</span>
+    </div>
+    <button class="redact-btn" type="button" (click)="onRedact()" [disabled]="!canRedact()">
+      <mat-icon>hide_source</mat-icon>
+      Redact {{ selectedCount() }}
+    </button>
+    } @else {
+    <!-- Idle -->
+    <div class="action-bar__status action-bar__status--idle">
+      <mat-icon>manage_search</mat-icon>
+      <span>Search to find matches</span>
+    </div>
+    }
+
+  </div>
+
+  }
+
+  <!-- ── Banners ────────────────────────────────────────────────────────────── -->
+  @if (errorMessage()) {
+  <div class="banner banner--error">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage() }}</span>
+  </div>
+  }
+  @if (successMessage()) {
+  <div class="banner banner--success">
+    <mat-icon>check_circle_outline</mat-icon>
+    <span>{{ successMessage() }}</span>
+  </div>
+  }
+
+  <!-- ── Download ───────────────────────────────────────────────────────────── -->
+  @if (redactedBytes() && !isRedacting()) {
+  <div class="download-row">
+    <button class="download-btn" type="button" (click)="onDownload()">
+      <mat-icon>download</mat-icon>
+      Download Redacted PDF
+    </button>
+    <span class="filename-hint">{{ redactedFilename() }}</span>
+  </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       MATCH LIST
+  ══════════════════════════════════════════════════════════════════════════ -->
+  @if (totalMatchCount() > 0 && !isRedacting()) {
+  <div class="results">
+
+    <!-- TEXT MATCHES ──────────────────────────────────────────────────────── -->
+    @if (textMatchCount() > 0) {
+    <div class="result-group" [class.result-group--off]="!includeTextMatches()">
+
+      <div class="group-header">
+        <input type="checkbox" class="cb" [checked]="includeTextMatches()"
+          (change)="includeTextMatches.set($any($event.target).checked)" />
+        <span class="dot dot--text"></span>
+        <span class="group-label">Text</span>
+        <span class="group-count">{{ textMatchCount() }}</span>
+      </div>
+
+      @for (group of textMatchesByPage(); track group.page) {
+      <div class="page-group">
+        <span class="page-label">p.{{ group.page }}</span>
+        <div class="page-hits">
+          @for (match of group.matches; track match.index) {
+          <div class="hit"
+            [class.hit--active]="highlightService.focused()?.type === 'text' && highlightService.focused()?.globalIndex === match.index"
+            (click)="focusTextMatch(match.index)" [innerHTML]="highlightTerm(match.context, match.term)"></div>
+          }
+        </div>
+      </div>
+      }
+
+    </div>
+    }
+
+    <!-- OCR MATCHES ───────────────────────────────────────────────────────── -->
+    @if (ocrMatchCount() > 0) {
+    <div class="result-group">
+
+      <div class="group-header">
+        <span class="dot dot--ocr"></span>
+        <span class="group-label">
+          Images
+          <span class="group-label__sub">(OCR)</span>
+        </span>
+        <span class="group-count">{{ ocrMatchCount() }}</span>
+
+        <!-- All / None as proper pill buttons -->
+        <div class="select-btns">
+          <button class="select-btn select-btn--all" type="button" (click)="toggleAllOcr(true)"
+            matTooltip="Select all OCR matches">All</button>
+          <button class="select-btn select-btn--none" type="button" (click)="toggleAllOcr(false)"
+            matTooltip="Deselect all OCR matches">None</button>
+        </div>
+      </div>
+
+      @for (group of ocrMatchesByPage(); track group.page) {
+      <div class="page-group">
+        <span class="page-label">p.{{ group.page }}</span>
+        <div class="page-hits">
+          @for (match of group.matches; track match.index) {
+          <label class="hit hit--ocr"
+            [class.hit--active]="highlightService.focused()?.type === 'ocr' && highlightService.focused()?.globalIndex === match.globalIndex"
+            (click)="focusOcrMatch(match.globalIndex, match.page)">
+            <input type="checkbox" class="cb" [checked]="match.checked"
+              (change)="toggleOcrMatch(match.index, $any($event.target).checked)" (click)="$event.stopPropagation()" />
+            <span class="conf" [class.conf--low]="match.confidence < 70">
+              {{ match.confidence }}%
+            </span>
+            <span>{{ match.context }}</span>
+          </label>
+          }
+        </div>
+      </div>
+      }
+
+    </div>
+    }
+
+  </div>
   }
 
 </div>

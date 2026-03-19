@@ -42,6 +42,7 @@ async function performRedaction(
     terms,
     fillColor = [0, 0, 0],
     clearMetadata = true,
+    ocrRects = [],
   } = options;
 
   const doc = mupdf.Document.openDocument(pdfBytes, 'application/pdf') as MuPDF.PDFDocument;
@@ -58,8 +59,12 @@ async function performRedaction(
     } satisfies WorkerResponse);
 
     const page = doc.loadPage(pageIndex) as MuPDF.PDFPage;
+    const bounds = page.getBounds(); // [x0, y0, x1, y1] — the actual MuPDF page bounds
+    console.log(`[Worker] Page ${pageIndex} bounds:`, bounds);
     let pageHadMatch = false;
 
+    // ── Text-based redaction ───────────────────────────────────────────────
+    // Uses MuPDF's built-in text search — accurate, no OCR needed.
     for (const term of terms) {
       const matchGroups = page.search(term) as unknown as number[][][];
       if (!matchGroups?.length) continue;
@@ -84,8 +89,31 @@ async function performRedaction(
       }
     }
 
+    // ── OCR rect-based redaction ───────────────────────────────────────────
+    const pageOcrRects = ocrRects.filter(r => r.pageIndex === pageIndex);
+    for (const { rect } of pageOcrRects) {
+      const bounds = page.getBounds();
+      const pageHeight = bounds[3];
+
+      // MuPDF WASM reads the coordinate in opposite direction, aka (0 starts from top)
+      // while in PDF (0 starts from bottom, top is 9xx etc)
+      const mupdfRect: MuPDF.Rect = [
+        rect[0],
+        pageHeight - rect[3], // flip: PDF y1 (top in PDF) → MuPDF y0 (top in MuPDF)
+        rect[2],
+        pageHeight - rect[1], // flip: PDF y0 (bottom in PDF) → MuPDF y1 (bottom in MuPDF)
+      ];
+
+      const annot = page.createAnnotation('Redact');
+      annot.setRect(mupdfRect);
+      annot.setColor(fillColor);
+      annot.update();
+      totalMatches++;
+      pageHadMatch = true;
+    }
+
     if (pageHadMatch) {
-      page.applyRedactions(true, 1);
+      page.applyRedactions(true, 2);
       affectedPages.add(pageIndex);
     }
   }
@@ -95,7 +123,7 @@ async function performRedaction(
   const rawBytes = doc.saveToBuffer('garbage=3,compress').asUint8Array();
   const outBytes = new Uint8Array(rawBytes.buffer.slice(
     rawBytes.byteOffset,
-    rawBytes.byteOffset + rawBytes.byteLength
+    rawBytes.byteOffset + rawBytes.byteLength,
   ));
   return { bytes: outBytes, matchCount: totalMatches, pagesAffected: affectedPages.size };
 }

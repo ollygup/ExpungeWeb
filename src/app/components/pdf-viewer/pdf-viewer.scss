@@ -149,7 +149,7 @@
   &::-webkit-inner-spin-button,
   &::-webkit-outer-spin-button { -webkit-appearance: none; }
   -moz-appearance: textfield;
-
+  appearance: textfield;
   &:focus { border-color: var(--accent); }
 }
 
@@ -206,6 +206,57 @@
   display: block;
   background: #fff;
   box-shadow: var(--shadow-lg);
+}
+
+// ── canvas-wrap needs position: relative for the SVG overlay ──
+.canvas-wrap {
+  position: relative;
+  display:  inline-block; // shrink-wrap to canvas size
+}
+
+// ── Highlight SVG overlay ──────────────────────────────────────
+.highlight-overlay {
+  position:       absolute;
+  top:            0;
+  left:           0;
+  pointer-events: none; // never block mouse events on the canvas
+  overflow:       visible;
+}
+
+// ── Highlight rect base ───────────────────────────────────────
+.hl-rect {
+  fill:            transparent;
+  stroke-width:    1.5;
+  rx:              2;
+  transition:      fill 0.15s ease, stroke 0.15s ease;
+}
+
+// Text match highlight — accent purple, semi-transparent fill
+.hl-rect--text {
+  fill:   rgba(124, 108, 244, 0.18);
+  stroke: rgba(124, 108, 244, 0.7);
+}
+
+// OCR match highlight — amber, semi-transparent fill
+.hl-rect--ocr {
+  fill:   rgba(251, 191, 36, 0.15);
+  stroke: rgba(251, 191, 36, 0.65);
+}
+
+// Focused state — stronger fill + glow outline
+.hl-rect--focused {
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.hl-rect--text.hl-rect--focused {
+  fill:   rgba(124, 108, 244, 0.35);
+  stroke: rgba(124, 108, 244, 1);
+}
+
+.hl-rect--ocr.hl-rect--focused {
+  fill:   rgba(251, 191, 36, 0.35);
+  stroke: rgba(251, 191, 36, 1);
 }
 
 /* ── Animations ─────────────────────────────────────────────── */

@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "postinstall": "node scripts/copy-assets.mjs"
   },
   "private": true,
   "packageManager": "npm@11.6.2",
@@ -23,6 +24,7 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.5.207",
     "rxjs": "~7.8.0",
+    "scribe.js-ocr": "^0.10.1",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

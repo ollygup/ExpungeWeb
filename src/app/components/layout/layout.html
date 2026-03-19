@@ -1,8 +1,5 @@
-<div class="layout-shell"
-     [class.drag-active]="isDraggingOver()"
-     (dragover)="onDragOver($event)"
-     (dragleave)="onDragLeave()"
-     (drop)="onDrop($event)">
+<div class="layout-shell" [class.drag-active]="isDraggingOver()" (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()" (drop)="onDrop($event)">
 
   <header class="app-header">
     <div class="header-brand">
@@ -11,12 +8,12 @@
       </span>
       <span class="brand-text">Expunge</span>
     </div>
-    
+
     @if (pdfLoaded | async) {
-      <div class="header-file-pill">
-        <mat-icon class="mat-icon-sm">picture_as_pdf</mat-icon>
-        <span class="file-name">{{ filename | async }}</span>
-      </div>
+    <div class="header-file-pill">
+      <mat-icon class="mat-icon-sm">picture_as_pdf</mat-icon>
+      <span class="file-name">{{ filename | async }}</span>
+    </div>
     }
 
     <div class="header-actions">
@@ -24,11 +21,13 @@
         <mat-icon>upload_file</mat-icon>
       </button>
       @if (pdfLoaded | async) {
-        <button class="header-btn header-btn--danger"
-                matTooltip="Revert to original PDF"
-                (click)="pdfService.revertToOriginal()">
-          <mat-icon>history</mat-icon>
-        </button>
+      <button class="header-btn header-btn--danger" matTooltip="Revert to original PDF"
+        (click)="pdfService.revertToOriginal()">
+        <mat-icon>history</mat-icon>
+      </button>
+      <button class="header-btn" matTooltip="Download PDF" (click)="pdfService.downloadCurrent()">
+        <mat-icon>download</mat-icon>
+      </button>
       }
       <button class="header-btn theme-btn" (click)="themeService.toggle()">
         <mat-icon>{{ (isDark | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
@@ -38,8 +37,7 @@
 
   <main class="layout-main">
 
-    <section class="panel panel-doc"
-             [class.panel-hidden-mobile]="activeTab() !== 'document'">
+    <section class="panel panel-doc" [class.panel-hidden-mobile]="activeTab() !== 'document'">
       <ng-content select="[layoutSlot='doc']"></ng-content>
     </section>
 
@@ -47,21 +45,17 @@
       <span class="resize-dots"><span></span><span></span><span></span></span>
     </div>
 
-    <aside class="panel panel-tools"
-           [class.panel-hidden-mobile]="activeTab() !== 'tools'">
+    <aside class="panel panel-tools" [class.panel-hidden-mobile]="activeTab() !== 'tools'">
 
       <nav class="tool-rail">
         @for (tool of tools(); track tool.id) {
-          <button class="rail-btn"
-                  [class.rail-btn--active]="activeTool() === tool.id"
-                  [matTooltip]="tool.label"
-                  matTooltipPosition="left"
-                  (click)="toolChange.emit(tool.id)">
-            <mat-icon>{{ tool.icon }}</mat-icon>
-          </button>
-          @if (tool.dividerAfter) {
-            <hr class="rail-divider" />
-          }
+        <button class="rail-btn" [class.rail-btn--active]="activeTool() === tool.id" [matTooltip]="tool.label"
+          matTooltipPosition="left" (click)="toolChange.emit(tool.id)">
+          <mat-icon>{{ tool.icon }}</mat-icon>
+        </button>
+        @if (tool.dividerAfter) {
+        <hr class="rail-divider" />
+        }
         }
       </nav>
 
@@ -79,15 +73,11 @@
   </main>
 
   <nav class="mobile-tabs">
-    <button class="mobile-tab"
-            [class.active]="activeTab() === 'document'"
-            (click)="setTab('document')">
+    <button class="mobile-tab" [class.active]="activeTab() === 'document'" (click)="setTab('document')">
       <mat-icon>picture_as_pdf</mat-icon>
       <span>Document</span>
     </button>
-    <button class="mobile-tab"
-            [class.active]="activeTab() === 'tools'"
-            (click)="setTab('tools')">
+    <button class="mobile-tab" [class.active]="activeTab() === 'tools'" (click)="setTab('tools')">
       <mat-icon>build</mat-icon>
       <span>Tools</span>
     </button>
@@ -96,12 +86,12 @@
 </div>
 
 @if (isDraggingOver()) {
-  <div class="drop-overlay">
-    <div class="drop-card">
-      <mat-icon class="mat-icon-lg">upload_file</mat-icon>
-      <p>Drop your PDF here</p>
-    </div>
+<div class="drop-overlay">
+  <div class="drop-card">
+    <mat-icon class="mat-icon-lg">upload_file</mat-icon>
+    <p>Drop your PDF here</p>
   </div>
+</div>
 }
 
 <input #fileInput type="file" accept=".pdf" style="display:none" (change)="onFileChange($event)">

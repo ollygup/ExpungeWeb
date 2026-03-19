@@ -1,3 +1,7 @@
+# Remove WASM from git commits
+public/assets/scribe
+public/assets/mupdf
+
 # Logs
 logs
 *.log

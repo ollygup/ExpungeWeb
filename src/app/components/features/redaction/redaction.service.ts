@@ -21,7 +21,7 @@ export class RedactionService implements OnDestroy {
   private initWorker(): void {
     this.worker = new Worker(
       new URL('./redaction.worker', import.meta.url),
-      { type: 'module' }
+      { type: 'module' },
     );
 
     this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -42,55 +42,54 @@ export class RedactionService implements OnDestroy {
       }
     };
 
-    this.worker.onerror = (err) => {
-      console.error('[RedactionService] Worker error:', err);
+    this.worker.onerror = (err: ErrorEvent) => {
+      console.error('[RedactionService] Worker error:', err.message, 'at', err.filename, 'line', err.lineno);
     };
   }
 
   /**
-   * Redacts all occurrences of `options.terms` in the given PDF bytes.
+   * Redacts the PDF using any combination of text terms and OCR rects.
    *
-   * @param pdfBytes  Raw bytes of the source PDF
-   * @param options   Terms to redact + configuration
-   * @param progress$ Optional Subject to receive per-page progress events
-   * @returns         Promise resolving to redacted PDF bytes + stats
+   * Text terms:  MuPDF searches the PDF content stream — guaranteed accurate.
+   * OCR rects:   Pre-computed by OcrService, passed straight through to the
+   *              worker which draws a black fill annotation over each rect.
+   *              Works on both image pixels and vector content.
+   *
+   * @param pdfBytes   Raw bytes of the source PDF (will be transferred to worker)
+   * @param options    Terms, OCR rects, and redaction config
+   * @param progress$  Optional Subject to receive per-page progress events
    */
   redact(
     pdfBytes: Uint8Array,
     options: RedactionOptions,
-    progress$?: Subject<{ page: number; total: number }>
+    progress$?: Subject<{ page: number; total: number }>,
   ): Promise<RedactionResult> {
     if (!this.worker) throw new Error('Worker not initialised');
-  
+
     const id = crypto.randomUUID();
     const progressSubject = progress$ ?? new Subject<{ page: number; total: number }>();
-  
-    // ✅ Guarantee a fresh, standalone, detachable ArrayBuffer
+
+    // Guarantee a fresh, standalone, detachable ArrayBuffer before transfer.
     const transferable = pdfBytes.buffer.slice(
       pdfBytes.byteOffset,
-      pdfBytes.byteOffset + pdfBytes.byteLength
+      pdfBytes.byteOffset + pdfBytes.byteLength,
     ) as ArrayBuffer;
-  
+
     return new Promise<RedactionResult>((resolve, reject) => {
       this.pendingJobs.set(id, { resolve, reject, progress$: progressSubject });
-  
+
       this.worker!.postMessage(
         { type: 'redact', id, pdfBytes: new Uint8Array(transferable), options },
-        [transferable]  // transfer the fresh copy
+        [transferable],
       );
     });
   }
 
   /**
-   * Trigger a browser download of the redacted PDF.
-   *
-   * FIX: Uint8Array.slice() always produces a view backed by a plain ArrayBuffer
-   * (never a SharedArrayBuffer), which satisfies the BlobPart constraint and
-   * eliminates the TS2345 / TS2322 errors on Blob construction.
+   * Triggers a browser download of the redacted PDF.
+   * Uses .slice() to guarantee a plain ArrayBuffer — avoids TS2322 on Blob.
    */
   downloadPDF(bytes: Uint8Array, filename = 'redacted.pdf'): void {
-    // .slice() with no args copies the underlying data into a brand-new ArrayBuffer,
-    // so TypeScript knows the buffer is ArrayBuffer (not ArrayBufferLike / SharedArrayBuffer).
     const safeBytes = bytes.slice();
     const blob = new Blob([safeBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);

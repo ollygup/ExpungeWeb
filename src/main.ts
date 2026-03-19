@@ -6,8 +6,11 @@ import { environment } from './environments/environment';
 
 if (environment.production) {
   enableProdMode();
-  console.log = () => {};
+  console.log   = () => {};
+  console.debug = () => {};
+  console.warn  = () => {};
+  console.info  = () => {};
+  // console.error = () => {};
 }
-
 bootstrapApplication(App, appConfig)
   .catch((err) => console.error(err));
