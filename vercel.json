@@ -1,76 +1,20 @@
 {
     "headers": [
-        {
-            "source": "/assets/(.*)",
-            "headers": [
-                {
-                    "key": "Content-Security-Policy",
-                    "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self';"
-                },
-                {
-                    "key": "Cross-Origin-Opener-Policy",
-                    "value": "same-origin"
-                },
-                {
-                    "key": "Cross-Origin-Embedder-Policy",
-                    "value": "credentialless"
-                },
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "Referrer-Policy",
-                    "value": "strict-origin-when-cross-origin"
-                },
-                {
-                    "key": "X-Frame-Options",
-                    "value": "DENY"
-                }
-            ]
-        },
-        {
-            "source": "/(.*)",
-            "headers": [
-                {
-                    "key": "Content-Security-Policy",
-                    "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self';"
-                },
-                {
-                    "key": "Cross-Origin-Opener-Policy",
-                    "value": "same-origin"
-                },
-                {
-                    "key": "Cross-Origin-Embedder-Policy",
-                    "value": "credentialless"
-                },
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "Referrer-Policy",
-                    "value": "strict-origin-when-cross-origin"
-                },
-                {
-                    "key": "X-Frame-Options",
-                    "value": "DENY"
-                }
-            ]
-        }
+      {
+        "source": "/(.*)",
+        "headers": [
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' blob: https://cdn.jsdelivr.net; img-src 'self' blob: data:; font-src 'self';" },
+          { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+          { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "X-Frame-Options", "value": "DENY" }
+        ]
+      }
     ],
     "rewrites": [
-        {
-            "source": "/sitemap.xml",
-            "destination": "/sitemap.xml"
-        },
-        {
-            "source": "/robots.txt",
-            "destination": "/robots.txt"
-        },
-        {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
+      { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
+      { "source": "/robots.txt", "destination": "/robots.txt" },
+      { "source": "/(.*)", "destination": "/index.html" }
     ]
-}
+  }
