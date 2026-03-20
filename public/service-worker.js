@@ -15,6 +15,7 @@ const PRECACHE_ASSETS = [
   '/assets/mupdf/mupdf.js',
   '/assets/mupdf/mupdf-wasm.js',
   '/assets/mupdf/mupdf-wasm.wasm',
+  '/assets/eng.traineddata.gz',
 ];
 
 // ── Install ──────────────────────────────────────────────────
@@ -63,19 +64,22 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignore non-GET and non-http(s) requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Cross-origin: network only (fonts, CDN assets, APIs)
+  // Intercept Tesseract CDN requests → serve local model instead
+  if (url.href.includes('cdn.jsdelivr.net') && url.href.includes('eng.traineddata')) {
+    event.respondWith(cacheFirst(new Request('/assets/scribe/eng.traineddata.gz')));
+    return;
+  }
+
+  // Cross-origin: network only
   if (url.origin !== self.location.origin) return;
 
-  // Navigation requests: network-first
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request));
     return;
   }
 
-  // Static assets: cache-first
   event.respondWith(cacheFirst(request));
 });
 
