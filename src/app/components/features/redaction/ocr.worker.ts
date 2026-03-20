@@ -19,7 +19,12 @@ async function ensureScribe(): Promise<void> {
         // @ts-ignore — no type declarations for scribe.js-ocr
         const mod = await import(/* @vite-ignore */ url.href);
         scribe = mod.default ?? mod;
-        await scribe.init({ pdf: false, ocr: true });
+        await scribe.init({ 
+            pdf: false, 
+            ocr: true,
+            langs: ['eng'],
+            langPath: `${self.location.origin}/assets`,
+          });
     })();
 
     return scribeReady;

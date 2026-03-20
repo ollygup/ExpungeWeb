@@ -3,7 +3,7 @@
 // ── VERSION ──────────────────────────────────────────────────
 // Bump this string on every production build to invalidate caches.
 // A build script (or manually) should replace this before deploy.
-const VERSION    = '1.0.1';
+const VERSION    = '1.0.2';
 const CACHE_NAME = `expunge-v${VERSION}`;
 
 // ── PRECACHE ASSETS  ──────────────────────────────────────────
