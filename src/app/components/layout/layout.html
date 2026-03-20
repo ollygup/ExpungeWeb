@@ -10,73 +10,78 @@
     </div>
 
     @if (pdfLoaded | async) {
-    @let name = filename | async;
-    <div class="header-file-pill">
-      <mat-icon class="mat-icon-sm">picture_as_pdf</mat-icon>
-      <span class="file-name" [matTooltip]="name ?? ''" matTooltipPosition="below">{{ name }}</span>
-    </div>
+      @let name = filename | async;
+      <div class="header-file-pill">
+        <mat-icon class="mat-icon-sm">picture_as_pdf</mat-icon>
+        <span class="file-name" [matTooltip]="name ?? ''" matTooltipPosition="below">{{ name }}</span>
+      </div>
     }
 
     <div class="header-actions">
 
-      <button class="header-btn" matTooltip="Upload PDF" matTooltipPosition="below" (click)="triggerUpload()">
+      <button class="header-btn" matTooltip="Upload PDF" matTooltipPosition="below" aria-label="Upload PDF"
+        (click)="triggerUpload()">
         <mat-icon>upload_file</mat-icon>
       </button>
 
       @if (pdfLoaded | async) {
-      <!-- Revert: desktop only — moves to overflow on mobile -->
-      <button class="header-btn header-btn--danger desktop-only" matTooltip="Revert to original PDF"
-        matTooltipPosition="below" (click)="pdfService.revertToOriginal()">
-        <mat-icon>history</mat-icon>
-      </button>
-      <button class="header-btn" matTooltip="Download PDF" matTooltipPosition="below"
-        (click)="pdfService.downloadCurrent()">
-        <mat-icon>download</mat-icon>
-      </button>
+        <!-- Revert: desktop only — moves to overflow on mobile -->
+        <button class="header-btn header-btn--danger desktop-only" matTooltip="Revert to original PDF"
+          matTooltipPosition="below" aria-label="Revert to original PDF" (click)="pdfService.revertToOriginal()">
+          <mat-icon>history</mat-icon>
+        </button>
+        <button class="header-btn" matTooltip="Download PDF" matTooltipPosition="below" aria-label="Download PDF"
+          (click)="pdfService.downloadCurrent()">
+          <mat-icon>download</mat-icon>
+        </button>
       }
 
       <!-- Theme: desktop only — moves to overflow on mobile -->
       <button class="header-btn theme-btn desktop-only"
-        [matTooltip]="(isDark | async) ? 'Switch to light mode' : 'Switch to dark mode'" matTooltipPosition="below"
+        [matTooltip]="(isDark | async) ? 'Switch to light mode' : 'Switch to dark mode'"
+        matTooltipPosition="below"
+        [attr.aria-label]="(isDark | async) ? 'Switch to light mode' : 'Switch to dark mode'"
         (click)="themeService.toggle()">
         <mat-icon>{{ (isDark | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
       </button>
 
       <!-- FAQ: desktop only — also in overflow on mobile -->
-      <a class="header-btn desktop-only" routerLink="/faq" matTooltip="FAQ & Help" matTooltipPosition="below">
+      <a class="header-btn desktop-only" routerLink="/faq" matTooltip="FAQ & Help" matTooltipPosition="below"
+        aria-label="FAQ & Help">
         <mat-icon>help_outline</mat-icon>
       </a>
 
       <!-- Overflow: mobile only ───────────────────────────── -->
       <div class="overflow-wrap mobile-only">
-        <button class="header-btn" (click)="toggleOverflow($event)">
+        <button class="header-btn" aria-label="More options" (click)="toggleOverflow($event)">
           <mat-icon>more_vert</mat-icon>
         </button>
 
         @if (overflowOpen()) {
-        <div class="overflow-menu">
+          <div class="overflow-menu">
 
-          <button class="overflow-item" (click)="themeService.toggle(); closeOverflow()">
-            <mat-icon>{{ (isDark | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
-            <span>{{ (isDark | async) ? 'Light mode' : 'Dark mode' }}</span>
-          </button>
+            <button class="overflow-item" (click)="themeService.toggle(); closeOverflow()">
+              <mat-icon>{{ (isDark | async) ? 'light_mode' : 'dark_mode' }}</mat-icon>
+              <span>{{ (isDark | async) ? 'Light mode' : 'Dark mode' }}</span>
+            </button>
 
-          @if (pdfLoaded | async) {
-          <div class="overflow-divider"></div>
-          <button class="overflow-item overflow-item--danger" (click)="pdfService.revertToOriginal(); closeOverflow()">
-            <mat-icon>history</mat-icon>
-            <span>Revert to original</span>
-          </button>
-          }
+            @if (pdfLoaded | async) {
+              <div class="overflow-divider"></div>
+              <button class="overflow-item overflow-item--danger"
+                (click)="pdfService.revertToOriginal(); closeOverflow()">
+                <mat-icon>history</mat-icon>
+                <span>Revert to original</span>
+              </button>
+            }
 
-          <div class="overflow-divider"></div>
+            <div class="overflow-divider"></div>
 
-          <a class="overflow-item" routerLink="/faq" (click)="closeOverflow()">
-            <mat-icon>help_outline</mat-icon>
-            <span>FAQ & Help</span>
-          </a>
+            <a class="overflow-item" routerLink="/faq" (click)="closeOverflow()">
+              <mat-icon>help_outline</mat-icon>
+              <span>FAQ & Help</span>
+            </a>
 
-        </div>
+          </div>
         }
       </div>
 
@@ -97,13 +102,14 @@
 
       <nav class="tool-rail">
         @for (tool of tools(); track tool.id) {
-        <button class="rail-btn" [class.rail-btn--active]="activeTool() === tool.id" [matTooltip]="tool.label"
-          matTooltipPosition="left" (click)="toolChange.emit(tool.id)">
-          <mat-icon>{{ tool.icon }}</mat-icon>
-        </button>
-        @if (tool.dividerAfter) {
-        <hr class="rail-divider" />
-        }
+          <button class="rail-btn" [class.rail-btn--active]="activeTool() === tool.id"
+            [matTooltip]="tool.label" [attr.aria-label]="tool.label"
+            matTooltipPosition="left" (click)="toolChange.emit(tool.id)">
+            <mat-icon>{{ tool.icon }}</mat-icon>
+          </button>
+          @if (tool.dividerAfter) {
+            <hr class="rail-divider" />
+          }
         }
       </nav>
 
@@ -134,12 +140,12 @@
 </div>
 
 @if (isDraggingOver()) {
-<div class="drop-overlay">
-  <div class="drop-card">
-    <mat-icon class="mat-icon-lg">upload_file</mat-icon>
-    <p>Drop your PDF here</p>
+  <div class="drop-overlay">
+    <div class="drop-card">
+      <mat-icon class="mat-icon-lg">upload_file</mat-icon>
+      <p>Drop your PDF here</p>
+    </div>
   </div>
-</div>
 }
 
 <input #fileInput type="file" accept=".pdf" style="display:none" (change)="onFileChange($event)">
