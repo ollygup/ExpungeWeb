@@ -8,14 +8,14 @@ import { environment } from '../../../../environments/environment';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
 
-// if (environment.production) {
-//     enableProdMode();
-//     console.log = () => { };
-//     console.debug = () => { };
-//     console.warn = () => { };
-//     console.info = () => { };
-//     // console.error = () => {};
-// }
+if (environment.production) {
+    enableProdMode();
+    console.log = () => { };
+    console.debug = () => { };
+    console.warn = () => { };
+    console.info = () => { };
+    // console.error = () => {};
+}
 
 // ── Scribe instance ───────────────────────────────────────────────────────────
 let scribe: any = null;
