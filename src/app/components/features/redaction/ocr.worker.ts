@@ -3,17 +3,9 @@
 // inside a worker in PDF.js v4 due to sub-worker restrictions).
 // Runs Scribe/Tesseract recognition entirely off the main thread.
 
-import { environment } from '../../../../environments/environment';
+import { customLogger } from '../../../../utils/custom-logger';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
-
-if (environment.production) {
-    console.log = () => { };
-    console.debug = () => { };
-    console.warn = () => { };
-    console.info = () => { };
-    // console.error = () => {};
-}
 
 // ── Scribe instance ───────────────────────────────────────────────────────────
 let scribe: any = null;
@@ -99,7 +91,7 @@ async function findInImages(
         await scribe.importFiles(files);
         await scribe.recognize();
     } catch (err) {
-        console.error('[OcrWorker] Scribe recognition failed:', err);
+        customLogger.error('[OcrWorker] Scribe recognition failed:', err);
         return matches;
     }
 

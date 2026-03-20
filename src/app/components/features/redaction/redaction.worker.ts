@@ -1,14 +1,6 @@
 import type * as MuPDF from 'mupdf';
 import { WorkerMessage, WorkerResponse, RedactionOptions, RedactionResult } from './redaction.types';
-import { environment } from '../../../../environments/environment';
-
-if (environment.production) {
-  console.log = () => { };
-  console.debug = () => { };
-  console.warn = () => { };
-  console.info = () => { };
-  // console.error = () => {};
-}
+import { customLogger } from '../../../../utils/custom-logger';
 
 let mupdf: typeof MuPDF;
 
@@ -19,7 +11,7 @@ async function loadMupdf(): Promise<void> {
   mupdf = mod.default ?? mod;
 
   if (typeof mupdf?.Document?.openDocument !== 'function') {
-    console.error('[Worker] Available keys:', Object.keys(mupdf ?? {}));
+    customLogger.error('[Worker] Available keys:', Object.keys(mupdf ?? {}));
     throw new Error('mupdf failed to initialize correctly');
   }
 }
@@ -69,7 +61,7 @@ async function performRedaction(
 
     const page = doc.loadPage(pageIndex) as MuPDF.PDFPage;
     const bounds = page.getBounds(); // [x0, y0, x1, y1] — the actual MuPDF page bounds
-    console.log(`[Worker] Page ${pageIndex} bounds:`, bounds);
+    customLogger.log(`[Worker] Page ${pageIndex} bounds:`, bounds);
     let pageHadMatch = false;
 
     // ── Text-based redaction ───────────────────────────────────────────────

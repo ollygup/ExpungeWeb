@@ -1,5 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { customLogger } from '../../utils/custom-logger';
 
 @Injectable({ providedIn: 'root' })
 export class SwUpdateService implements OnDestroy {
@@ -23,7 +24,7 @@ export class SwUpdateService implements OnDestroy {
       if (registration.waiting) {
         this.waitingWorker = registration.waiting;
         this._updateAvailable$.next(true);
-        console.log("New SW Update available");
+        customLogger.log("New SW Update available");
       }
 
       // A new SW finishes installing and moves to waiting
@@ -45,7 +46,7 @@ export class SwUpdateService implements OnDestroy {
       });
 
     } catch (err) {
-      console.warn('[SwUpdateService] Init failed:', err);
+      customLogger.warn('[SwUpdateService] Init failed:', err);
     }
   }
 

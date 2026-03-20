@@ -7,6 +7,7 @@ import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 
 import { IndexedDbService } from './indexed-db.service';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
+import { customLogger } from '../../utils/custom-logger';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.origin + '/assets/pdf.worker.min.mjs';
 
@@ -46,7 +47,7 @@ export class PdfService {
       const filename = this.filename();
       if (!bytes || !filename) return;
       this.idb.updateCurrentBytes(bytes).catch(err =>
-        console.error('[PdfService] IDB persist failed:', err),
+        customLogger.error('[PdfService] IDB persist failed:', err),
       );
     });
   }

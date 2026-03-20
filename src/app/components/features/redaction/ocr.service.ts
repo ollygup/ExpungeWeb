@@ -3,6 +3,7 @@ import { Subject } from 'rxjs';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
+import { customLogger } from '../../../../utils/custom-logger';
 
 interface PendingOcrJob {
   resolve:   (matches: OcrMatch[]) => void;
@@ -45,7 +46,7 @@ export class OcrService implements OnDestroy {
     };
 
     this.worker.onerror = (err: ErrorEvent) => {
-      console.error('[OcrService] Worker error:', err.message, 'at', err.filename, 'line', err.lineno);
+      customLogger.error('[OcrService] Worker error:', err.message, 'at', err.filename, 'line', err.lineno);
     };
   }
 
@@ -99,7 +100,7 @@ export class OcrService implements OnDestroy {
           scaleY: canvasH / pdfViewport1x.height,
         });
       } catch (err) {
-        console.warn(`[OcrService] Render failed for page ${pageNum}:`, err);
+        customLogger.warn(`[OcrService] Render failed for page ${pageNum}:`, err);
       }
     }
 

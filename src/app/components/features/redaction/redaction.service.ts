@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { RedactionOptions, RedactionResult, WorkerResponse } from './redaction.types';
+import { customLogger } from '../../../../utils/custom-logger';
 
 interface PendingJob {
   resolve: (result: RedactionResult) => void;
@@ -43,7 +44,7 @@ export class RedactionService implements OnDestroy {
     };
 
     this.worker.onerror = (err: ErrorEvent) => {
-      console.error('[RedactionService] Worker error:', err.message, 'at', err.filename, 'line', err.lineno);
+      customLogger.error('[RedactionService] Worker error:', err.message, 'at', err.filename, 'line', err.lineno);
     };
   }
 

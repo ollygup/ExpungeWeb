@@ -18,6 +18,7 @@ import { RedactionService } from './redaction.service';
 import { OcrService } from './ocr.service';
 import { HighlightService, PageHighlight } from '../../../services/highlight.service';
 import { SearchMatch, OcrMatch } from './redaction.types';
+import { customLogger } from '../../../../utils/custom-logger';
 
 @Component({
   selector: 'app-redaction',
@@ -113,7 +114,7 @@ export class RedactionComponent implements OnDestroy {
     if (this.ocrEnabled() && ocrResult?.status === 'fulfilled') {
       this.ocrMatches.set(ocrResult.value);
     } else if (this.ocrEnabled()) {
-      console.warn('[Redaction] OCR search failed:', ocrResult);
+      customLogger.warn('[Redaction] OCR search failed:', ocrResult);
     }
 
     this.isSearching.set(false);
@@ -240,7 +241,7 @@ export class RedactionComponent implements OnDestroy {
       .filter(m => m.checked)
       .map(m => ({ pageIndex: m.page - 1, rect: m.rect }));
 
-    console.log('[Redaction] OCR rects sent to MuPDF:', JSON.stringify(ocrRects));
+    customLogger.log('[Redaction] OCR rects sent to MuPDF:', JSON.stringify(ocrRects));
 
     if (!includeText && ocrRects.length === 0) return;
 

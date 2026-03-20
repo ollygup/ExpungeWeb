@@ -2,6 +2,7 @@ import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
+import { customLogger } from '../utils/custom-logger';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -17,9 +18,9 @@ export async function registerServiceWorker(): Promise<void> {
     await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/',
     });
-    console.log('[SW] Service worker registered successfully.');
+    customLogger.log('[SW] Service worker registered successfully.');
   } catch (err) {
-    console.warn('[SW] Registration failed:', err);
+    customLogger.warn('[SW] Registration failed:', err);
   }
 }
  
