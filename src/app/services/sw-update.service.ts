@@ -23,6 +23,7 @@ export class SwUpdateService implements OnDestroy {
       if (registration.waiting) {
         this.waitingWorker = registration.waiting;
         this._updateAvailable$.next(true);
+        console.log("New SW Update available");
       }
 
       // A new SW finishes installing and moves to waiting

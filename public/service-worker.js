@@ -1,7 +1,7 @@
 'use strict';
 
 // ── VERSION ──────────────────────────────────────────────────
-const VERSION    = '1.0.6';
+const VERSION    = '1.0.7';
 const CACHE_NAME = `expunge-v${VERSION}`;
 
 // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_ASSETS))
-    // Do NOT skipWaiting here — the update banner handles activation.
+      .then(() => self.skipWaiting()) // ← temporary, remove in 1.0.8
   );
 });
 
