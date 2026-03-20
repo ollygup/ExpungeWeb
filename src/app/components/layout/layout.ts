@@ -11,6 +11,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { AsyncPipe, NgComponentOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PdfService } from '../../services/pdf.service';
@@ -21,17 +22,17 @@ type MobileTab = 'document' | 'tools';
 
 @Component({
   selector: 'app-layout',
-  imports: [AsyncPipe, NgComponentOutlet, MatIconModule, MatTooltipModule],
+  imports: [AsyncPipe, NgComponentOutlet, MatIconModule, MatTooltipModule, RouterLink],
   templateUrl: './layout.html',
   styleUrl: './layout.scss',
 })
 export class LayoutComponent implements OnDestroy {
   // ── Injections ───────────────────────────────────────────────
-  readonly pdfService = inject(PdfService);
+  readonly pdfService   = inject(PdfService);
   readonly themeService = inject(ThemeService);
 
   // ── Inputs / Outputs ─────────────────────────────────────────
-  readonly tools = input<ToolEntry[]>([]);
+  readonly tools      = input<ToolEntry[]>([]);
   readonly activeTool = input<string>('');
   readonly toolChange = output<string>();
 
@@ -47,32 +48,54 @@ export class LayoutComponent implements OnDestroy {
     this.activeToolEntry()?.component ?? null
   );
 
-  // ── Observables (still fine to use with AsyncPipe) ───────────
-  readonly filename = this.pdfService.filename$;
+  // ── Observables ──────────────────────────────────────────────
+  readonly filename  = this.pdfService.filename$;
   readonly pdfLoaded = this.pdfService.pdfLoaded$;
-  readonly isDark = this.themeService.isDark$;
+  readonly isDark    = this.themeService.isDark$;
 
   // ── State ────────────────────────────────────────────────────
-  readonly activeTab = signal<MobileTab>('document');
+  readonly activeTab      = signal<MobileTab>('document');
   readonly isDraggingOver = signal(false);
+  readonly overflowOpen   = signal(false);
 
   // ── Resize ───────────────────────────────────────────────────
-  private isResizing = false;
+  private isResizing  = false;
   private resizeStartX = 0;
-  private startWidth = 0;
+  private startWidth  = 0;
   private readonly hostRef = inject(ElementRef<HTMLElement>);
 
-  private readonly mouseMoveRef = (e: MouseEvent) => this.doResize(e);
-  private readonly mouseUpRef = () => this.stopResize();
+  private readonly mouseMoveRef    = (e: MouseEvent)  => this.doResize(e);
+  private readonly mouseUpRef      = ()               => this.stopResize();
+  private readonly clickOutsideRef = (e: MouseEvent)  => this.onClickOutside(e);
 
   constructor() {
     document.addEventListener('mousemove', this.mouseMoveRef);
-    document.addEventListener('mouseup', this.mouseUpRef);
+    document.addEventListener('mouseup',   this.mouseUpRef);
+    document.addEventListener('click',     this.clickOutsideRef);
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('mousemove', this.mouseMoveRef);
-    document.removeEventListener('mouseup', this.mouseUpRef);
+    document.removeEventListener('mouseup',   this.mouseUpRef);
+    document.removeEventListener('click',     this.clickOutsideRef);
+  }
+
+  // ── Overflow menu ────────────────────────────────────────────
+  toggleOverflow(e: MouseEvent): void {
+    e.stopPropagation(); // prevent clickOutside from immediately closing
+    this.overflowOpen.update(v => !v);
+  }
+
+  closeOverflow(): void {
+    this.overflowOpen.set(false);
+  }
+
+  private onClickOutside(e: MouseEvent): void {
+    if (!this.overflowOpen()) return;
+    const wrap = this.hostRef.nativeElement.querySelector('.overflow-wrap');
+    if (wrap && !wrap.contains(e.target as Node)) {
+      this.overflowOpen.set(false);
+    }
   }
 
   // ── Mobile tabs ──────────────────────────────────────────────
@@ -104,11 +127,11 @@ export class LayoutComponent implements OnDestroy {
 
   // ── Panel resize ─────────────────────────────────────────────
   startResize(e: MouseEvent): void {
-    this.isResizing = true;
+    this.isResizing   = true;
     this.resizeStartX = e.clientX;
-    const left = document.querySelector('.panel-doc') as HTMLElement;
-    this.startWidth = left?.offsetWidth ?? 0;
-    document.body.style.cursor = 'col-resize';
+    const left        = document.querySelector('.panel-doc') as HTMLElement;
+    this.startWidth   = left?.offsetWidth ?? 0;
+    document.body.style.cursor     = 'col-resize';
     document.body.style.userSelect = 'none';
   }
 
@@ -118,14 +141,14 @@ export class LayoutComponent implements OnDestroy {
     if (!container) return;
     const delta = e.clientX - this.resizeStartX;
     const total = container.offsetWidth;
-    const newW = Math.min(Math.max(this.startWidth + delta, total * 0.28), total * 0.72);
+    const newW  = Math.min(Math.max(this.startWidth + delta, total * 0.28), total * 0.72);
     this.hostRef.nativeElement.style.setProperty('--doc-panel-w', `${(newW / total) * 100}%`);
   }
 
   private stopResize(): void {
     if (!this.isResizing) return;
-    this.isResizing = false;
-    document.body.style.cursor = '';
+    this.isResizing                = false;
+    document.body.style.cursor     = '';
     document.body.style.userSelect = '';
   }
 }
