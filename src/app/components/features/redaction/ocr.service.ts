@@ -168,8 +168,6 @@ export class OcrService implements OnDestroy {
     const regionBlobs: OcrPageBlob[] = [];
 
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-      onProgress?.(pageNum, totalPages);
-
       try {
         const page          = await pdfJsDoc.getPage(pageNum);
         const pdfViewport1x = page.getViewport({ scale: 1 });

@@ -78,21 +78,6 @@ async function findInImages(
 
   if (!pages.length) return matches;
 
-  // Convert blobs to Files for Scribe
-  const files = pages.map((p, i) =>
-    new File([p.blob], `region-${p.pageNum}-${i}.png`, { type: 'image/png' }),
-  );
-
-  // ── Single batched recognize call ─────────────────────────────────────────
-  try {
-    await scribe.clear();
-    await scribe.importFiles(files);
-    await scribe.recognize();
-  } catch (err) {
-    customLogger.error('[OcrWorker] Scribe recognition failed:', err);
-    return matches;
-  }
-
   // ── Search each region result ─────────────────────────────────────────────
   for (let i = 0; i < pages.length; i++) {
     const { pageNum, pdfHeight1x, scaleX, scaleY, offsetPixelX, offsetPixelY } = pages[i];

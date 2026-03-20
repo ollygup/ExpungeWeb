@@ -55,6 +55,40 @@ export class RedactionComponent implements OnDestroy {
   redactedBytes = signal<Uint8Array | null>(null);
   redactedFilename = signal('');
 
+  // ── Progress bar ───────────────────────────────────────────────────────────
+  readonly barWidth   = signal(0);
+  readonly barVisible = signal(false);
+  
+  private startBar(): void {
+    this.barWidth.set(0);
+    this.barVisible.set(true);
+    this.cdr.markForCheck();
+    this.barWidth.set(8);
+  }
+  
+  private updateBar(page: number, total: number): void {
+    const next = 8 + (page / total) * 85;
+    if (next > this.barWidth()) {
+      this.barWidth.set(next);
+      this.cdr.markForCheck();
+    }
+  }
+  
+  private completeBar(): void {
+    this.barWidth.set(100);
+    this.cdr.markForCheck();
+    setTimeout(() => {
+      this.barVisible.set(false);
+      this.barWidth.set(0);
+      this.cdr.markForCheck();
+    }, 600);
+  }
+  
+  private resetBar(): void {
+    this.barWidth.set(0);
+    this.barVisible.set(false);
+  }
+
   // ── Derived ────────────────────────────────────────────────────────────────
   readonly textMatchCount = computed(() => this.textMatches().length);
   readonly ocrMatchCount = computed(() => this.ocrMatches().length);
@@ -71,8 +105,7 @@ export class RedactionComponent implements OnDestroy {
 
   readonly selectedCount = computed(() => {
     const textCount = (this.includeTextMatches() && this.textMatchCount() > 0)
-      ? this.textMatchCount()
-      : 0;
+      ? this.textMatchCount() : 0;
     const ocrCount = this.ocrMatches().filter(m => m.checked).length;
     return textCount + ocrCount;
   });
@@ -97,7 +130,11 @@ export class RedactionComponent implements OnDestroy {
     this.includeTextMatches.set(true);
     this.highlightService.clear();
 
-    if (this.ocrEnabled()) this.isOcrSearching.set(true);
+    if (this.ocrEnabled()) {
+      this.isOcrSearching.set(true);
+      this.startBar();
+    }
+
     this.cdr.markForCheck();
 
     const tasks: Promise<any>[] = [this.runTextSearch(term)];
@@ -121,9 +158,7 @@ export class RedactionComponent implements OnDestroy {
     this.isOcrSearching.set(false);
     this.hasSearched.set(true);
 
-    // Push all highlights to the service for the viewer overlay
     this.pushHighlights();
-
     this.cdr.markForCheck();
   }
 
@@ -139,7 +174,6 @@ export class RedactionComponent implements OnDestroy {
       const regex = new RegExp(escaped, 'gi');
       let match: RegExpExecArray | null;
 
-      // Get rects for this page's text items that match the term
       const rects = await this.pdfService.getPageTextMatchRects(pageNum, term);
       let rectIndex = 0;
 
@@ -153,7 +187,7 @@ export class RedactionComponent implements OnDestroy {
           page: pageNum,
           context,
           term,
-          rect: rects[rectIndex] ?? rects[0], // assign rect round-robin
+          rect: rects[rectIndex] ?? rects[0],
         });
         rectIndex = (rectIndex + 1) % Math.max(rects.length, 1);
       }
@@ -165,18 +199,26 @@ export class RedactionComponent implements OnDestroy {
   private async runOcrSearch(term: string): Promise<OcrMatch[]> {
     const pdfJsDoc = this.pdfService.getPdfJsDoc();
     if (!pdfJsDoc) return [];
-    
-    return this.ocrService.findInImages(
-      pdfJsDoc,
-      term,
-      this.pdfService.totalPages,
-      (page, total) => {
-        this.ocrProgress.set({ page, total });
-        this.cdr.markForCheck();
-      },
-    );
+
+    // startBar() no longer here
+    try {
+      const results = await this.ocrService.findInImages(
+        pdfJsDoc,
+        term,
+        this.pdfService.totalPages,
+        (page, total) => {
+          this.ocrProgress.set({ page, total });
+          this.updateBar(page, total);
+          this.cdr.markForCheck();
+        },
+      );
+      this.completeBar();
+      return results;
+    } catch (err) {
+      this.resetBar();
+      throw err;
+    }
   }
- 
 
   // ── Highlight service sync ─────────────────────────────────────────────────
   private pushHighlights(): void {
@@ -185,30 +227,20 @@ export class RedactionComponent implements OnDestroy {
 
     for (const m of this.textMatches()) {
       if (m.rect) {
-        highlights.push({
-          pageNum: m.page,
-          rect: m.rect,
-          type: 'text',
-          globalIndex: globalIndex,
-        });
+        highlights.push({ pageNum: m.page, rect: m.rect, type: 'text', globalIndex });
       }
       globalIndex++;
     }
 
     for (const m of this.ocrMatches()) {
-      highlights.push({
-        pageNum: m.page,
-        rect: m.rect,
-        type: 'ocr',
-        globalIndex: globalIndex,
-      });
+      highlights.push({ pageNum: m.page, rect: m.rect, type: 'ocr', globalIndex });
       globalIndex++;
     }
 
     this.highlightService.setHighlights(highlights);
   }
 
-  // ── Match focus (click in panel → highlight in viewer) ────────────────────
+  // ── Match focus ────────────────────────────────────────────────────────────
   focusTextMatch(index: number): void {
     this.highlightService.setFocused({ type: 'text', globalIndex: index });
     this.highlightService.setActivePage(this.textMatches()[index].page);
@@ -219,7 +251,7 @@ export class RedactionComponent implements OnDestroy {
     this.highlightService.setActivePage(pageNum);
   }
 
-  // ── OCR toggle ─────────────────────────────────────────────────────────────
+  // ── OCR match toggles ──────────────────────────────────────────────────────
   toggleOcrMatch(index: number, checked: boolean): void {
     const matches = this.ocrMatches().slice();
     matches[index] = { ...matches[index], checked };
@@ -304,6 +336,7 @@ export class RedactionComponent implements OnDestroy {
     this.ocrProgress.set(null);
     this.includeTextMatches.set(true);
     this.highlightService.clear();
+    this.resetBar();
     this.cdr.markForCheck();
   }
 
@@ -325,7 +358,6 @@ export class RedactionComponent implements OnDestroy {
     const textCount = this.textMatchCount();
     this.ocrMatches().forEach((m, index) => {
       const arr = map.get(m.page) ?? [];
-      // globalIndex offsets past all text matches
       arr.push({ ...m, index, globalIndex: textCount + index });
       map.set(m.page, arr);
     });
@@ -356,6 +388,7 @@ export class RedactionComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.progressSub?.unsubscribe();
+    this.resetBar();
     this.highlightService.clear();
   }
 }
