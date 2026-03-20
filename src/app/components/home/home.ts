@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { LayoutComponent } from '../layout/layout';
 import { MatIconModule } from '@angular/material/icon';
 import { PdfViewerComponent } from '../pdf-viewer/pdf-viewer';
 import { FEATURES_REGISTRY } from './features-registry';
+import { SwUpdateService } from '../../services/sw-update.service';
 
 @Component({
   selector: 'app-home',
@@ -12,6 +13,8 @@ import { FEATURES_REGISTRY } from './features-registry';
   styleUrl: './home.scss',
 })
 export class HomeComponent {
+  readonly swUpdateService   = inject(SwUpdateService);
+
   readonly tools = FEATURES_REGISTRY;
   readonly activeTool = signal(FEATURES_REGISTRY[0].id);
 }

@@ -1,8 +1,21 @@
-<app-layout
-  [tools]="tools"
-  [activeTool]="activeTool()"
-  (toolChange)="activeTool.set($event)">
-
-  <app-pdf-viewer layoutSlot="doc"></app-pdf-viewer>
-
-</app-layout>
+@if (swUpdateService.updateAvailable$ | async) {
+  <div class="update-banner">
+    <mat-icon class="mat-icon-sm">system_update</mat-icon>
+    <span>A new version of Expunge is available.</span>
+    <button class="update-btn" (click)="swUpdateService.activateUpdate()">
+      Update now
+    </button>
+    <button class="update-dismiss" (click)="swUpdateService.dismissUpdate()">
+      <mat-icon class="mat-icon-sm">close</mat-icon>
+    </button>
+  </div>
+  }
+  
+  <app-layout
+    [tools]="tools"
+    [activeTool]="activeTool()"
+    (toolChange)="activeTool.set($event)">
+  
+    <app-pdf-viewer layoutSlot="doc"></app-pdf-viewer>
+  
+  </app-layout>
