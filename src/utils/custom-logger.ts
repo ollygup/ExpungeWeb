@@ -1,11 +1,11 @@
 // workers ignore environment.ts/environment.prod.ts replacement done by angular
 // so use this instead
-declare const IS_PROD: boolean;
+const isProd = import.meta.env.NG_APP_ENV === 'production';
 
 export const customLogger = {
-  log:   IS_PROD ? () => {} : console.log.bind(console),
-  debug: IS_PROD ? () => {} : console.debug.bind(console),
-  warn:  IS_PROD ? () => {} : console.warn.bind(console),
-  info:  IS_PROD ? () => {} : console.info.bind(console),
+  log:   isProd ? () => {} : console.log.bind(console),
+  debug: isProd ? () => {} : console.debug.bind(console),
+  warn:  isProd ? () => {} : console.warn.bind(console),
+  info:  isProd ? () => {} : console.info.bind(console),
   error: console.error.bind(console),
 };

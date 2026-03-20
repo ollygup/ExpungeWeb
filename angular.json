@@ -42,9 +42,6 @@
           },
           "configurations": {
             "production": {
-              "define": {
-                "IS_PROD": "true"
-              },
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
@@ -66,9 +63,6 @@
               "outputHashing": "all"
             },
             "development": {
-              "define": {
-                "IS_PROD": "false"
-              },
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
