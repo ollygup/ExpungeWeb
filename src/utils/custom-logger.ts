@@ -1,6 +1,6 @@
 // workers ignore environment.ts/environment.prod.ts replacement done by angular
 // so use this instead
-const isProd = import.meta.env.NG_APP_ENV === 'production';
+const isProd = import.meta.env["NG_APP_ENV"] === 'production';
 
 export const customLogger = {
   log:   isProd ? () => {} : console.log.bind(console),
