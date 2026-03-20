@@ -60,6 +60,7 @@ export class LayoutComponent implements OnDestroy {
   private isResizing = false;
   private resizeStartX = 0;
   private startWidth = 0;
+  private readonly hostRef = inject(ElementRef<HTMLElement>);
 
   private readonly mouseMoveRef = (e: MouseEvent) => this.doResize(e);
   private readonly mouseUpRef = () => this.stopResize();
@@ -118,7 +119,7 @@ export class LayoutComponent implements OnDestroy {
     const delta = e.clientX - this.resizeStartX;
     const total = container.offsetWidth;
     const newW = Math.min(Math.max(this.startWidth + delta, total * 0.28), total * 0.72);
-    document.documentElement.style.setProperty('--doc-panel-w', `${(newW / total) * 100}%`);
+    this.hostRef.nativeElement.style.setProperty('--doc-panel-w', `${(newW / total) * 100}%`);
   }
 
   private stopResize(): void {
