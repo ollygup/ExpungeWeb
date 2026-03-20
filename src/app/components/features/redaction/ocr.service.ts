@@ -1,15 +1,47 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { OPS } from 'pdfjs-dist';
+import type { PDFDocumentProxy, PDFPageProxy, PageViewport } from 'pdfjs-dist';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
 import { customLogger } from '../../../../utils/custom-logger';
+
+// ── Matrix helpers (avoids importing pdfjs Util separately) ──────────────────
+
+function applyMatrix(p: [number, number], m: number[]): [number, number] {
+  return [
+    p[0] * m[0] + p[1] * m[2] + m[4],
+    p[0] * m[1] + p[1] * m[3] + m[5],
+  ];
+}
+
+function concatMatrix(m1: number[], m2: number[]): number[] {
+  return [
+    m1[0] * m2[0] + m1[1] * m2[2],
+    m1[0] * m2[1] + m1[1] * m2[3],
+    m1[2] * m2[0] + m1[3] * m2[2],
+    m1[2] * m2[1] + m1[3] * m2[3],
+    m1[4] * m2[0] + m1[5] * m2[2] + m2[4],
+    m1[4] * m2[1] + m1[5] * m2[3] + m2[5],
+  ];
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface ImageRegion {
+  x:      number;
+  y:      number;
+  width:  number;
+  height: number;
+}
 
 interface PendingOcrJob {
   resolve:   (matches: OcrMatch[]) => void;
   reject:    (err: Error) => void;
   progress$: Subject<{ page: number; total: number }>;
 }
+
+// ── Service ───────────────────────────────────────────────────────────────────
 
 @Injectable({ providedIn: 'root' })
 export class OcrService implements OnDestroy {
@@ -50,11 +82,81 @@ export class OcrService implements OnDestroy {
     };
   }
 
-  /**
-   * Renders all pages using PDF.js on the main thread (PDF.js v4 cannot run
-   * inside a worker), then transfers the PNG blobs to ocr.worker.ts for
-   * Scribe/Tesseract recognition off the main thread.
-   */
+  // ── Extract image XObject bounding boxes from the page operator list ─────────
+  // Walks the operator stream tracking the CTM so we know exactly where each
+  // embedded image is painted on the canvas. Text operators are ignored entirely.
+  private async getImageRegions(
+    page: PDFPageProxy,
+    viewport: PageViewport,
+  ): Promise<ImageRegion[]> {
+    const opList  = await page.getOperatorList();
+    const regions: ImageRegion[] = [];
+
+    const imageOps = new Set([
+      OPS.paintImageXObject,
+      OPS.paintInlineImageXObject,
+      OPS.paintImageMaskXObject,
+    ]);
+
+    const ctmStack: number[][] = [];
+    let ctm: number[] = [1, 0, 0, 1, 0, 0];
+
+    const { fnArray, argsArray } = opList;
+
+    for (let i = 0; i < fnArray.length; i++) {
+      const fn = fnArray[i];
+
+      if (fn === OPS.save) {
+        ctmStack.push([...ctm]);
+
+      } else if (fn === OPS.restore) {
+        ctm = ctmStack.pop() ?? [1, 0, 0, 1, 0, 0];
+
+      } else if (fn === OPS.transform) {
+        // Concatenate the new matrix onto the current CTM
+        ctm = concatMatrix(ctm, argsArray[i] as number[]);
+
+      } else if (imageOps.has(fn)) {
+        // An image occupies the unit square [0,0]→[1,1] in its own space.
+        // Apply CTM to get PDF user-space coords, then viewport.transform
+        // to get canvas pixel coords (includes scale + y-flip).
+        const vt = viewport.transform as number[];
+        const corners: [number, number][] = (
+          [[0, 0], [1, 0], [1, 1], [0, 1]] as [number, number][]
+        ).map(p => applyMatrix(applyMatrix(p, ctm), vt));
+
+        const xs = corners.map(p => p[0]);
+        const ys = corners.map(p => p[1]);
+
+        const x  = Math.max(0, Math.min(...xs));
+        const y  = Math.max(0, Math.min(...ys));
+        const x2 = Math.min(viewport.width,  Math.max(...xs));
+        const y2 = Math.min(viewport.height, Math.max(...ys));
+
+        const width  = x2 - x;
+        const height = y2 - y;
+
+        // Skip decorative/tiny images — unlikely to contain redactable text
+        if (width > 16 && height > 16) {
+          regions.push({
+            x:      Math.floor(x),
+            y:      Math.floor(y),
+            width:  Math.ceil(width),
+            height: Math.ceil(height),
+          });
+        }
+      }
+    }
+
+    return regions;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // For each page, inspect the operator list to find embedded image XObjects.
+  // Only those regions are rendered to PNG and sent to the OCR worker —
+  // the PDF text layer is never rasterised, so Tesseract cannot confuse
+  // selectable text with image content.
+  // ─────────────────────────────────────────────────────────────────────────────
   async findInImages(
     pdfJsDoc: PDFDocumentProxy,
     searchTerm: string,
@@ -63,8 +165,7 @@ export class OcrService implements OnDestroy {
   ): Promise<OcrMatch[]> {
     if (!this.worker) throw new Error('OCR worker not initialised');
 
-    // ── Render all pages on main thread ──────────────────────────────────────
-    const pages: OcrPageBlob[] = [];
+    const regionBlobs: OcrPageBlob[] = [];
 
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       onProgress?.(pageNum, totalPages);
@@ -73,44 +174,66 @@ export class OcrService implements OnDestroy {
         const page          = await pdfJsDoc.getPage(pageNum);
         const pdfViewport1x = page.getViewport({ scale: 1 });
 
-        // 3× consistent scale — page height is not a reliable proxy for
-        // font size on A4 documents (images are pasted on standard A4).
         const OCR_SCALE = 3;
         const viewport  = page.getViewport({ scale: OCR_SCALE });
         const canvasW   = Math.floor(viewport.width);
         const canvasH   = Math.floor(viewport.height);
 
-        const canvas = new OffscreenCanvas(canvasW, canvasH);
-        const ctx    = canvas.getContext('2d', { willReadFrequently: true }) as unknown as CanvasRenderingContext2D;
+        // ── 1. Find image regions before touching the canvas ──────────────
+        const imageRegions = await this.getImageRegions(page, viewport);
+
+        if (!imageRegions.length) {
+          customLogger.debug(`[OcrService] Page ${pageNum}: no embedded images — skipping`);
+          continue;
+        }
+
+        // ── 2. Render full page once ──────────────────────────────────────
+        const pageCanvas = new OffscreenCanvas(canvasW, canvasH);
+        const pageCtx    = pageCanvas.getContext('2d', { willReadFrequently: true }) as unknown as CanvasRenderingContext2D;
 
         await page.render({
           canvas:        null as unknown as HTMLCanvasElement,
-          canvasContext: ctx,
+          canvasContext: pageCtx,
           viewport,
         }).promise;
 
-        const blob = await canvas.convertToBlob({ type: 'image/png' });
+        // ── 3. Crop each image region to its own blob ─────────────────────
+        const scaleX = canvasW / pdfViewport1x.width;
+        const scaleY = canvasH / pdfViewport1x.height;
 
-        pages.push({
-          pageNum,
-          blob,
-          pdfHeight1x: pdfViewport1x.height,
-          // Effective scale accounts for Math.floor on canvas dimensions
-          scaleX: canvasW / pdfViewport1x.width,
-          scaleY: canvasH / pdfViewport1x.height,
-        });
+        for (const region of imageRegions) {
+          const cropCanvas = new OffscreenCanvas(region.width, region.height);
+          const cropCtx    = cropCanvas.getContext('2d')!;
+
+          cropCtx.drawImage(
+            pageCanvas,
+            region.x, region.y, region.width, region.height,
+            0,        0,        region.width, region.height,
+          );
+
+          const blob = await cropCanvas.convertToBlob({ type: 'image/png' });
+
+          regionBlobs.push({
+            pageNum,
+            blob,
+            pdfHeight1x:  pdfViewport1x.height,
+            scaleX,
+            scaleY,
+            offsetPixelX: region.x,
+            offsetPixelY: region.y,
+          });
+        }
       } catch (err) {
-        customLogger.warn(`[OcrService] Render failed for page ${pageNum}:`, err);
+        customLogger.warn(`[OcrService] Failed processing page ${pageNum}:`, err);
       }
     }
 
-    if (!pages.length) return [];
+    if (!regionBlobs.length) return [];
 
-    // ── Transfer blobs to worker for recognition ──────────────────────────────
-    const id             = crypto.randomUUID();
+    // ── 4. Send all region blobs to worker ────────────────────────────────────
+    const id              = crypto.randomUUID();
     const progressSubject = new Subject<{ page: number; total: number }>();
 
-    // Forward worker progress back to caller
     if (onProgress) {
       progressSubject.subscribe(p => onProgress(p.page, p.total));
     }
@@ -119,11 +242,9 @@ export class OcrService implements OnDestroy {
       this.pendingJobs.set(id, { resolve, reject, progress$: progressSubject });
 
       this.worker!.postMessage(
-        { type: 'findInImages', id, pages, searchTerm } satisfies OcrWorkerMessage,
+        { type: 'findInImages', id, pages: regionBlobs, searchTerm } satisfies OcrWorkerMessage,
       );
-      // Note: blobs are not transferable — they are structured-cloned.
-      // This is unavoidable; ArrayBuffers could be transferred but Blob
-      // API is more convenient and the copy is fast for PNG data.
+      // Blobs are structured-cloned (not transferable) — unavoidable.
     });
   }
 
