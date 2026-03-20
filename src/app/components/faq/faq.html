@@ -1,0 +1,57 @@
+<app-header />
+
+<main class="faq-root">
+
+  <div class="faq-hero">
+    <h1 class="faq-title">Help & FAQ</h1>
+    <p class="faq-subtitle">Everything you need to know about Expunge.</p>
+  </div>
+
+  <div class="faq-tabs">
+    <button class="faq-tab" [class.faq-tab--active]="activeTab() === 'casual'"
+      (click)="setTab('casual')">
+      Just the basics
+    </button>
+    <button class="faq-tab" [class.faq-tab--active]="activeTab() === 'nerd'"
+      (click)="setTab('nerd')">
+      I am a nerd 🤓
+    </button>
+  </div>
+
+  <div class="faq-list">
+
+    @if (activeTab() === 'casual') {
+      @for (item of casualFaqs; track item.q; let i = $index) {
+      <div class="faq-item" [class.faq-item--open]="item.open">
+        <button class="faq-question" (click)="toggleItem(casualFaqs, i)">
+          <span>{{ item.q }}</span>
+          <span class="faq-chevron">{{ item.open ? '−' : '+' }}</span>
+        </button>
+        @if (item.open) {
+        <div class="faq-answer">{{ item.a }}</div>
+        }
+      </div>
+      }
+    }
+
+    @if (activeTab() === 'nerd') {
+      @for (item of nerdFaqs; track item.q; let i = $index) {
+      <div class="faq-item" [class.faq-item--open]="item.open">
+        <button class="faq-question" (click)="toggleItem(nerdFaqs, i)">
+          <span>{{ item.q }}</span>
+          <span class="faq-chevron">{{ item.open ? '−' : '+' }}</span>
+        </button>
+        @if (item.open) {
+        <div class="faq-answer">{{ item.a }}</div>
+        }
+      </div>
+      }
+    }
+
+  </div>
+
+  <div class="faq-footer">
+    <a routerLink="/" class="back-btn">← Back to Expunge</a>
+  </div>
+
+</main>
