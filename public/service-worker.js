@@ -19,19 +19,10 @@ const PRECACHE_ASSETS = [
 
 // ── Install ──────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  console.log(`[SW ${VERSION}] Installing…`);
-
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_ASSETS))
-      .then(() => {
-        console.log(`[SW ${VERSION}] Pre-cache complete.`);
-        // Do NOT call skipWaiting() here — let the app decide via postMessage.
-        // This prevents jarring mid-session updates.
-      })
-      .catch((err) => {
-        console.warn(`[SW ${VERSION}] Pre-cache failed (non-fatal):`, err);
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
