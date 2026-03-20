@@ -3,7 +3,7 @@
 // ── VERSION ──────────────────────────────────────────────────
 // Bump this string on every production build to invalidate caches.
 // A build script (or manually) should replace this before deploy.
-const VERSION    = '1.0.2';
+const VERSION    = '1.0.3';
 const CACHE_NAME = `expunge-v${VERSION}`;
 
 // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -66,9 +66,9 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Intercept Tesseract CDN requests → serve local model instead
+  // Intercept Tesseract CDN requests, serve local model instead
   if (url.href.includes('cdn.jsdelivr.net') && url.href.includes('eng.traineddata')) {
-    event.respondWith(cacheFirst(new Request('/assets/scribe/eng.traineddata.gz')));
+    event.respondWith(cacheFirst(new Request('/assets/eng.traineddata.gz')));
     return;
   }
 
