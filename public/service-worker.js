@@ -3,7 +3,7 @@
 // ── VERSION ──────────────────────────────────────────────────
 // Bump this string on every production build to invalidate caches.
 // A build script (or manually) should replace this before deploy.
-const VERSION    = '1.0.3';
+const VERSION    = '1.0.4';
 const CACHE_NAME = `expunge-v${VERSION}`;
 
 // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -15,7 +15,6 @@ const PRECACHE_ASSETS = [
   '/assets/mupdf/mupdf.js',
   '/assets/mupdf/mupdf-wasm.js',
   '/assets/mupdf/mupdf-wasm.wasm',
-  '/assets/eng.traineddata.gz',
 ];
 
 // ── Install ──────────────────────────────────────────────────
@@ -64,22 +63,19 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Ignore non-GET and non-http(s) requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
-  // Intercept Tesseract CDN requests, serve local model instead
-  if (url.href.includes('cdn.jsdelivr.net') && url.href.includes('eng.traineddata')) {
-    event.respondWith(cacheFirst(new Request('/assets/eng.traineddata.gz')));
-    return;
-  }
-
-  // Cross-origin: network only
+  // Cross-origin: network only (fonts, CDN assets, APIs)
   if (url.origin !== self.location.origin) return;
 
+  // Navigation requests: network-first
   if (request.mode === 'navigate') {
     event.respondWith(networkFirst(request));
     return;
   }
 
+  // Static assets: cache-first
   event.respondWith(cacheFirst(request));
 });
 
