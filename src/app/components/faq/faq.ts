@@ -51,7 +51,7 @@ export class FaqComponent {
     },
     {
       q: 'Isn\'t WASM heavy and resource intensive — won\'t it freeze the page?',
-      a: 'WASM is heavy, yes. So instead of running it on the main thread and freezing your UI, it runs inside a Web Worker — which uses a completely separate thread. Your browser is effectively multithreading',
+      a: 'WASM is heavy, yes. So instead of running it on the main thread and freezing your UI, it runs inside a Web Worker — which uses a completely separate thread. Your website is effectively multithreading.',
     },
     {
       q: 'Why does my PDF stay on the page even after I close and reopen it?',

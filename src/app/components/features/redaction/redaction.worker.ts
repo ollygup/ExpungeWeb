@@ -3,14 +3,14 @@ import { WorkerMessage, WorkerResponse, RedactionOptions, RedactionResult } from
 import { environment } from '../../../../environments/environment';
 import { enableProdMode } from '@angular/core';
 
-if (environment.production) {
-  enableProdMode();
-  console.log = () => { };
-  console.debug = () => { };
-  console.warn = () => { };
-  console.info = () => { };
-  // console.error = () => {};
-}
+// if (environment.production) {
+//   enableProdMode();
+//   console.log = () => { };
+//   console.debug = () => { };
+//   console.warn = () => { };
+//   console.info = () => { };
+//   // console.error = () => {};
+// }
 
 let mupdf: typeof MuPDF;
 

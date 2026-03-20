@@ -3,8 +3,19 @@
 // inside a worker in PDF.js v4 due to sub-worker restrictions).
 // Runs Scribe/Tesseract recognition entirely off the main thread.
 
+import { enableProdMode } from '@angular/core';
+import { environment } from '../../../../environments/environment';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
+
+// if (environment.production) {
+//     enableProdMode();
+//     console.log = () => { };
+//     console.debug = () => { };
+//     console.warn = () => { };
+//     console.info = () => { };
+//     // console.error = () => {};
+// }
 
 // ── Scribe instance ───────────────────────────────────────────────────────────
 let scribe: any = null;
@@ -19,10 +30,10 @@ async function ensureScribe(): Promise<void> {
         // @ts-ignore — no type declarations for scribe.js-ocr
         const mod = await import(/* @vite-ignore */ url.href);
         scribe = mod.default ?? mod;
-        await scribe.init({ 
-            pdf: false, 
+        await scribe.init({
+            pdf: false,
             ocr: true
-          });
+        });
     })();
 
     return scribeReady;
@@ -131,19 +142,19 @@ async function findInImages(
             if (sliceText !== termLower && !sliceText.includes(termLower)) continue;
 
             // allow OCR to roughly guess character size and redact partial word instead of full word
-            const word       = slice[0]; // single word case
-            const fullText   = word.text;
+            const word = slice[0]; // single word case
+            const fullText = word.text;
             const matchStart = fullText.toLowerCase().indexOf(termLower);
-            const matchEnd   = matchStart + termLower.length;
-            const ratio      = fullText.length;
+            const matchEnd = matchStart + termLower.length;
+            const ratio = fullText.length;
 
             const bboxW = word.bbox.x1 - word.bbox.x0;
-            const bboxH    = word.bbox.y1 - word.bbox.y0;
-            const padY     = bboxH * 0.10; // add a 10% padding top and bottom
-            const padX     = bboxW * 0.02; // add 2% padding left and right
+            const bboxH = word.bbox.y1 - word.bbox.y0;
+            const padY = bboxH * 0.10; // add a 10% padding top and bottom
+            const padX = bboxW * 0.02; // add 2% padding left and right
 
             const x0 = word.bbox.x0 + (bboxW * matchStart / ratio) - padX;
-            const x1 = word.bbox.x0 + (bboxW * matchEnd   / ratio) + padX;
+            const x1 = word.bbox.x0 + (bboxW * matchEnd / ratio) + padX;
             const y0 = word.bbox.y0 - padY;
             const y1 = word.bbox.y1 + padY;
 

@@ -1,3 +1,5 @@
+// copy-assets.mjs
+
 For WASM, instead of letting angular.json handle the copying to the public 
 directory, it is done via scripts/copy-assets.mjs. This is due to a limitation 
 of ng serve, which ignores angular.json asset copying.
