@@ -16,11 +16,11 @@ const files = [
 for (const { src, dest } of dirs) {
     mkdirSync(dest, { recursive: true });
     cpSync(src, dest, { recursive: true });
-    logger.log(`Copied dir  ${src} → ${dest}`);
+    console.log(`Copied dir  ${src} → ${dest}`);
 }
 
 for (const { src, dest } of files) {
     mkdirSync(dest, { recursive: true });
     cpSync(src, `${dest}/${basename(src)}`);
-    logger.log(`Copied file ${src} → ${dest}/${basename(src)}`);
+    console.log(`Copied file ${src} → ${dest}/${basename(src)}`);
 }
