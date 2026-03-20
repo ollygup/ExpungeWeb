@@ -11,7 +11,6 @@ export const appConfig: ApplicationConfig = {
 };
 
 export async function registerServiceWorker(): Promise<void> {
-  if (isDevMode()) return;
   if (!('serviceWorker' in navigator)) return;
  
   try {

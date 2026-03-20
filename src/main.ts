@@ -1,5 +1,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
-import { appConfig } from './app/app.config';
+import { appConfig, registerServiceWorker } from './app/app.config';
 import { App } from './app/app';
 import { enableProdMode } from '@angular/core';
 import { environment } from './environments/environment';
@@ -12,5 +12,7 @@ if (environment.production) {
   console.info  = () => {};
   // console.error = () => {};
 }
+
 bootstrapApplication(App, appConfig)
+  .then(() => registerServiceWorker())
   .catch((err) => console.error(err));
