@@ -464,9 +464,7 @@
 
 // ── Individual hit ────────────────────────────────────────────
 .hit {
-  display:       flex;
-  align-items:   flex-start;
-  gap:           7px;
+  display:       block;          // ← was flex; inline flow for innerHTML
   padding:       4px 7px;
   border-radius: var(--radius-xs);
   font-size:     12px;
@@ -482,6 +480,13 @@
   &--active {
     background:   var(--bg-surface-2);
     border-color: var(--accent);
+  }
+
+  // OCR hits have real DOM children (checkbox + conf + span) so they still need flex
+  &--ocr {
+    display:     flex;
+    align-items: flex-start;
+    gap:         7px;
   }
 
   &--ocr.hit--active { border-color: rgba(251, 191, 36, 0.5); }

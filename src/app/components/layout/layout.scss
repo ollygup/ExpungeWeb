@@ -2,7 +2,7 @@
 
 :host {
   display: block;
-  height: 100vh;
+  height: 100dvh;
   --doc-panel-w: 58%;
   --header-h: 54px;
   --tab-bar-h: 62px;
@@ -12,7 +12,7 @@
 .layout-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   background: var(--bg-base);
   overflow: hidden;
   transition: var(--transition-theme);
@@ -210,6 +210,8 @@
   background: var(--bg-surface);
   border-top: 1px solid var(--border-default);
   transition: var(--transition-theme);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box; // so height stays 62px + safe area on top
 }
 
 .mobile-tab {
@@ -302,7 +304,7 @@
   }
 
   .layout-main {
-    height: calc(100vh - var(--header-h) - var(--tab-bar-h));
+    height: calc(100vh - var(--header-h) - var(--tab-bar-h) - env(safe-area-inset-bottom));
   }
 
   .file-name { max-width: 140px; }
