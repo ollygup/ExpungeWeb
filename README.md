@@ -24,3 +24,9 @@ Everything requested over the network gets captured by the SW's runtime caching
 every subsequent request. If a stable-named file changes but the SW version 
 isn't bumped, users will keep receiving the old cached version instead of 
 fetching the updated one from the network.
+
+
+
+// PRODUCTION
+add NG_APP_ENV to your env, value = production
+
