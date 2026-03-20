@@ -3,13 +3,11 @@
 // inside a worker in PDF.js v4 due to sub-worker restrictions).
 // Runs Scribe/Tesseract recognition entirely off the main thread.
 
-import { enableProdMode } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import type { OcrMatch } from '../redaction/redaction.types';
 import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.types';
 
 if (environment.production) {
-    enableProdMode();
     console.log = () => { };
     console.debug = () => { };
     console.warn = () => { };
