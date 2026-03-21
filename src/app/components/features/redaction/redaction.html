@@ -290,7 +290,7 @@
                       type="button" (click)="drawService.clear()">Clear all</button>
             </div>
 
-            @for (group of drawnRectsByPage(); track group.page) {
+            @for (group of drawService.rectsByPage(); track group.page) {
               <div class="page-group">
                 <span class="page-label">p.{{ group.page }}</span>
                 <div class="page-hits">
