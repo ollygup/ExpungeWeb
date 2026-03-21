@@ -25,7 +25,6 @@ export type RedactionTab = 'search' | 'draw';
 
 @Component({
   selector: 'app-redaction',
-  standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, MatTooltipModule],
   templateUrl: './redaction.html',
   styleUrl: './redaction.scss',

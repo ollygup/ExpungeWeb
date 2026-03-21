@@ -29,7 +29,6 @@ interface SvgRect {
 
 @Component({
   selector: 'app-pdf-viewer',
-  standalone: true,
   imports: [CommonModule, MatIconModule, MatTooltipModule],
   templateUrl: './pdf-viewer.html',
   styleUrls: ['./pdf-viewer.scss'],
