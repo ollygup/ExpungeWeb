@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 
-const DB_NAME = 'expunge-db';
+const DB_NAME = 'expunge-documents-db';
 const DB_VERSION = 1;
 const STORE = 'documents';
 
@@ -8,7 +8,7 @@ export interface StoredDocument {
     id: 'current';
     filename: string;
     originalBytes: Uint8Array;   // Never overwritten after initial upload
-    currentBytes: Uint8Array;   // Updated after each redaction operation
+    currentBytes: Uint8Array;    // Updated after each redaction operation
     uploadedAt: number;
     modifiedAt: number;
 }
@@ -36,15 +36,12 @@ export class IndexedDbService {
     }
 
     // ── Save (initial upload) ─────────────────────────────────────
-    // Persists both originalBytes and currentBytes as the same initial payload.
-    // originalBytes is NEVER overwritten by subsequent calls — it is the source
-    // of truth for the "revert to original" feature.
     async saveDocument(filename: string, bytes: Uint8Array): Promise<void> {
         await this.open();
         const doc: StoredDocument = {
             id: 'current',
             filename,
-            originalBytes: bytes.slice(), // defensive copy
+            originalBytes: bytes.slice(),
             currentBytes: bytes.slice(),
             uploadedAt: Date.now(),
             modifiedAt: Date.now(),
@@ -53,7 +50,6 @@ export class IndexedDbService {
     }
 
     // ── Update current bytes (after redaction / annotation) ───────
-    // Only currentBytes and modifiedAt are updated; originalBytes stays intact.
     async updateCurrentBytes(bytes: Uint8Array): Promise<void> {
         await this.open();
         const existing = await this.load();
@@ -61,7 +57,7 @@ export class IndexedDbService {
 
         await this.put({
             ...existing,
-            currentBytes: bytes.slice(), // defensive copy
+            currentBytes: bytes.slice(),
             modifiedAt: Date.now(),
         });
     }

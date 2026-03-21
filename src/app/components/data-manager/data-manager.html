@@ -1,0 +1,77 @@
+<div class="dm">
+
+    <!-- ── Documents section ──────────────────────────────────── -->
+    <section class="dm-section">
+      <header class="dm-section-header">
+        <span class="material-icons dm-section-icon">description</span>
+        <h3 class="dm-section-title">Documents</h3>
+      </header>
+  
+      @if (dataManagerService.loading()) {
+        <div class="dm-state dm-state--loading">
+          <span class="dm-spinner"></span>
+          <span>Loading…</span>
+        </div>
+      } @else if (dataManagerService.error()) {
+        <div class="dm-state dm-state--error">
+          <span class="material-icons">error_outline</span>
+          <span>{{ dataManagerService.error() }}</span>
+        </div>
+      } @else if (dataManagerService.document(); as doc) {
+        <div class="dm-card">
+  
+          <div class="dm-card-filename">
+            <span class="material-icons dm-file-icon">picture_as_pdf</span>
+            <span class="dm-filename-text">{{ doc.filename }}</span>
+          </div>
+  
+          <dl class="dm-meta">
+            <div class="dm-meta-row">
+              <dt>Original</dt>
+              <dd>{{ dataManagerService.formatBytes(doc.originalSize) }}</dd>
+            </div>
+            <div class="dm-meta-row">
+              <dt>Current</dt>
+              <dd>{{ dataManagerService.formatBytes(doc.currentSize) }}</dd>
+            </div>
+            <div class="dm-meta-row dm-meta-row--date">
+              <dt>Uploaded</dt>
+              <dd>{{ dataManagerService.formatDate(doc.uploadedAt) }}</dd>
+            </div>
+            <div class="dm-meta-row dm-meta-row--date">
+              <dt>Modified</dt>
+              <dd>{{ dataManagerService.formatDate(doc.modifiedAt) }}</dd>
+            </div>
+          </dl>
+  
+          <div class="dm-card-actions">
+            <button class="dm-btn dm-btn--secondary" (click)="onRevert()">
+              <span class="material-icons">history</span>
+              Revert
+            </button>
+            <button class="dm-btn dm-btn--danger" (click)="onClear()">
+              <span class="material-icons">delete_outline</span>
+              Clear
+            </button>
+          </div>
+  
+        </div>
+      } @else {
+        <div class="dm-state dm-state--empty">
+          <span class="material-icons dm-empty-icon">inbox</span>
+          <p>No document loaded</p>
+        </div>
+      }
+    </section>
+  
+    <!-- ── Fonts section (placeholder) ───────────────────────── -->
+    <section class="dm-section dm-section--muted">
+      <header class="dm-section-header">
+        <span class="material-icons dm-section-icon">font_download</span>
+        <h3 class="dm-section-title">Fonts</h3>
+        <span class="dm-badge">Soon</span>
+      </header>
+      <p class="dm-coming-text">Upload custom fonts to use when editing PDF text.</p>
+    </section>
+  
+  </div>

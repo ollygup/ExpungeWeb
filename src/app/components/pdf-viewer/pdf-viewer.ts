@@ -6,8 +6,8 @@ import {
   OnInit,
   ViewChild,
   inject,
+  signal,
   computed,
-  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,12 +37,16 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   @ViewChild('scrollArea', { static: false }) scrollRef!: ElementRef<HTMLDivElement>;
 
   protected highlightService = inject(HighlightService);
+  public pdfService = inject(PdfService);
+  private zone = inject(NgZone);
 
-  pdfLoaded = false;
-  isRendering = false;
-  currentPage = 1;
-  totalPages = 0;
-  zoom = 100;
+  // ── Signals ──────────────────────────────────────────────────
+  readonly pdfLoaded = signal(false);
+  readonly isRendering = signal(false);
+  readonly currentPage = signal(1);
+  readonly totalPages = signal(0);
+  readonly zoom = signal(100);
+  readonly svgRects = signal<SvgRect[]>([]);
 
   // Page dimensions at scale=1 (PDF points) — needed for overlay coord math
   pageWidth1x = 0;
@@ -52,47 +56,51 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   svgWidth = 0;
   svgHeight = 0;
 
-  // Computed highlight rects for the current page
-  svgRects: SvgRect[] = [];
-
-  get zoomScale() { return this.zoom / 100; }
+  readonly zoomScale = computed(() => this.zoom() / 100);
 
   private subs = new Subscription();
   private renderController: AbortController | null = null;
 
-  constructor(
-    public pdfService: PdfService,
-    private zone: NgZone,
-  ) { }
-
   ngOnInit(): void {
     this.pdfService.loadFromIndexedDB();
-  
+
     this.subs.add(
       this.pdfService.pdfLoaded$.subscribe(loaded => {
-        this.pdfLoaded = loaded;
+        this.pdfLoaded.set(loaded);
         if (loaded) {
-          this.totalPages = this.pdfService.totalPages;
-          this.currentPage = 1;
+          this.totalPages.set(this.pdfService.totalPages);
+          this.currentPage.set(1);
           this.highlightService.setActivePage(1);
           // Delay one tick — ViewChild canvas must be in DOM before render
           setTimeout(() => this.render());
+        } else {
+          this.totalPages.set(0);
+          this.currentPage.set(1);
+          this.svgRects.set([]);
         }
       })
     );
-  
-    // Fires when bytes change (new file uploaded over existing one).
-    // pdfLoaded$ won't re-emit in this case since isLoaded stays true.
+
+    // Fires when bytes change (new file uploaded, reverted, or cleared).
+    // pdfLoaded$ won't re-emit when isLoaded stays true (e.g. revert/overwrite).
     this.subs.add(
       this.pdfService.renderTrigger$.subscribe(() => {
-        // Always re-sync page count — handles overwrite case
-        this.totalPages  = this.pdfService.totalPages;
-        this.currentPage = 1;
+        console.log('[viewer] renderTrigger$ fired, isLoaded:', this.pdfService.isLoaded());
+
+        if (!this.pdfService.isLoaded()) {
+          this.pdfLoaded.set(false);
+          this.totalPages.set(0);
+          this.currentPage.set(1);
+          this.svgRects.set([]);
+          return;
+        }
+        this.totalPages.set(this.pdfService.totalPages);
+        this.currentPage.set(1);
         this.highlightService.setActivePage(1);
-        this.render();
+        setTimeout(() => this.render());
       })
     );
-  
+
     const intervalId = setInterval(() => this.updateSvgRects(), 100);
     this.subs.add({ unsubscribe: () => clearInterval(intervalId) });
   }
@@ -102,27 +110,27 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.renderController?.abort();
   }
 
-  // ── Navigation ────────────────────────────────────────────────────────────
+  // ── Navigation ────────────────────────────────────────────────
   prevPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-      this.highlightService.setActivePage(this.currentPage);
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
+      this.highlightService.setActivePage(this.currentPage());
       this.render();
     }
   }
 
   nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-      this.highlightService.setActivePage(this.currentPage);
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
+      this.highlightService.setActivePage(this.currentPage());
       this.render();
     }
   }
 
   goToPage(n: number): void {
-    const p = Math.max(1, Math.min(n, this.totalPages));
-    if (p !== this.currentPage) {
-      this.currentPage = p;
+    const p = Math.max(1, Math.min(n, this.totalPages()));
+    if (p !== this.currentPage()) {
+      this.currentPage.set(p);
       this.highlightService.setActivePage(p);
       this.render();
     }
@@ -133,39 +141,39 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
 
   private checkPageNavigation(): void {
     const requestedPage = this.highlightService.activePage();
-    if (requestedPage !== this.lastActivePage && requestedPage !== this.currentPage) {
+    if (requestedPage !== this.lastActivePage && requestedPage !== this.currentPage()) {
       this.lastActivePage = requestedPage;
       this.goToPage(requestedPage);
     }
   }
 
-  // ── Zoom ──────────────────────────────────────────────────────────────────
-  zoomIn(): void { this.zoom = Math.min(250, this.zoom + 25); this.render(); }
-  zoomOut(): void { this.zoom = Math.max(50, this.zoom - 25); this.render(); }
-  zoomFit(): void { this.zoom = 100; this.render(); }
+  // ── Zoom ──────────────────────────────────────────────────────
+  zoomIn(): void { this.zoom.update(z => Math.min(250, z + 25)); this.render(); }
+  zoomOut(): void { this.zoom.update(z => Math.max(50, z - 25)); this.render(); }
+  zoomFit(): void { this.zoom.set(100); this.render(); }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────
   async render(): Promise<void> {
     this.renderController?.abort();
     this.renderController = new AbortController();
-    const signal = this.renderController.signal;
+    const abortSignal = this.renderController.signal;
 
     if (!this.canvasRef?.nativeElement) return;
-    this.isRendering = true;
+    this.isRendering.set(true);
 
     const canvas = this.canvasRef.nativeElement;
     canvas.width = 0;
     canvas.height = 0;
 
     try {
-      if (signal.aborted) return;
-      await this.pdfService.renderPage(this.currentPage, canvas, this.zoomScale);
-      if (signal.aborted) return;
+      if (abortSignal.aborted) return;
+      await this.pdfService.renderPage(this.currentPage(), canvas, this.zoomScale());
+      if (abortSignal.aborted) return;
 
       // Store page dimensions for overlay coordinate math
       const pdfJsDoc = this.pdfService.getPdfJsDoc();
       if (pdfJsDoc) {
-        const page = await pdfJsDoc.getPage(this.currentPage);
+        const page = await pdfJsDoc.getPage(this.currentPage());
         const vp = page.getViewport({ scale: 1 });
         this.pageWidth1x = vp.width;
         this.pageHeight1x = vp.height;
@@ -175,30 +183,35 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       this.svgWidth = parseInt(canvas.style.width, 10) || canvas.width;
       this.svgHeight = parseInt(canvas.style.height, 10) || canvas.height;
 
-      this.pdfService.setCurrentPageInfo(this.currentPage, this.zoomScale);
+      this.pdfService.setCurrentPageInfo(this.currentPage(), this.zoomScale());
       this.updateSvgRects();
     } finally {
-      if (!signal.aborted) {
-        this.zone.run(() => { this.isRendering = false; });
+      if (!abortSignal.aborted) {
+        this.zone.run(() => this.isRendering.set(false));
       }
     }
   }
 
-  // ── Overlay ───────────────────────────────────────────────────────────────
+  // ── Overlay ───────────────────────────────────────────────────
   updateSvgRects(): void {
     this.checkPageNavigation();
 
     const pageHighlights = this.highlightService.pageHighlights();
     const focused = this.highlightService.focused();
 
-    this.svgRects = pageHighlights
-      .filter(h => h.pageNum === this.currentPage)
-      .map(h => this.toSvgRect(h, focused?.globalIndex === h.globalIndex && focused?.type === h.type));
+    this.svgRects.set(
+      pageHighlights
+        .filter(h => h.pageNum === this.currentPage())
+        .map(h => this.toSvgRect(
+          h,
+          focused?.globalIndex === h.globalIndex && focused?.type === h.type,
+        ))
+    );
   }
 
   private toSvgRect(h: PageHighlight, focused: boolean): SvgRect {
     const [x0pdf, y0pdf, x1pdf, y1pdf] = h.rect;
-    const z = this.zoomScale;
+    const z = this.zoomScale();
     const H = this.pageHeight1x;
 
     return {

@@ -2,7 +2,7 @@
 <div class="viewer-root">
 
   <!-- ── Empty / Upload State ───────────────────────────────── -->
-  @if (!pdfLoaded) {
+  @if (!pdfLoaded()) {
     <div class="viewer-empty">
       <div class="empty-icon-wrap">
         <mat-icon class="mat-icon-lg">picture_as_pdf</mat-icon>
@@ -17,30 +17,30 @@
   }
 
   <!-- ── PDF Canvas View ────────────────────────────────────── -->
-  @if (pdfLoaded) {
+  @if (pdfLoaded()) {
     <div class="viewer-body">
 
       <!-- Toolbar -->
       <div class="viewer-toolbar">
         <div class="toolbar-group">
           <button class="tool-btn" matTooltip="Previous page"
-                  [disabled]="currentPage <= 1" (click)="prevPage()">
+                  [disabled]="currentPage() <= 1" (click)="prevPage()">
             <mat-icon>chevron_left</mat-icon>
           </button>
 
           <span class="page-info">
             <input class="page-input"
                    type="number"
-                   [value]="currentPage"
+                   [value]="currentPage()"
                    [min]="1"
-                   [max]="totalPages"
+                   [max]="totalPages()"
                    (change)="goToPage(+$any($event.target).value)">
             <span class="page-sep">/</span>
-            <span class="page-total">{{ totalPages }}</span>
+            <span class="page-total">{{ totalPages() }}</span>
           </span>
 
           <button class="tool-btn" matTooltip="Next page"
-                  [disabled]="currentPage >= totalPages" (click)="nextPage()">
+                  [disabled]="currentPage() >= totalPages()" (click)="nextPage()">
             <mat-icon>chevron_right</mat-icon>
           </button>
         </div>
@@ -51,7 +51,7 @@
           <button class="tool-btn" matTooltip="Zoom out" (click)="zoomOut()">
             <mat-icon>zoom_out</mat-icon>
           </button>
-          <span class="zoom-label">{{ zoom }}%</span>
+          <span class="zoom-label">{{ zoom() }}%</span>
           <button class="tool-btn" matTooltip="Zoom in" (click)="zoomIn()">
             <mat-icon>zoom_in</mat-icon>
           </button>
@@ -60,7 +60,7 @@
           </button>
         </div>
 
-        @if (isRendering) {
+        @if (isRendering()) {
           <div class="render-indicator">
             <span class="spin-ring"></span>
           </div>
@@ -70,7 +70,7 @@
       <!-- Canvas + overlay scroll area -->
       <div class="canvas-scroll" #scrollArea>
         <div class="canvas-wrap"
-             [style.transform]="'scale(' + zoomScale + ')'"
+             [style.transform]="'scale(' + zoomScale() + ')'"
              [style.transform-origin]="'top center'">
 
           <!-- PDF render canvas -->
@@ -81,13 +81,13 @@
                Coordinates are in CSS pixels matching canvas.style dimensions.
                canvas-wrap's CSS transform scales both together automatically.
           ─────────────────────────────────────────────────────────────────── -->
-          @if (svgRects.length > 0) {
+          @if (svgRects().length > 0) {
             <svg class="highlight-overlay"
                  [attr.width]="svgWidth"
                  [attr.height]="svgHeight"
                  [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight">
 
-              @for (rect of svgRects; track trackByIndex($index)) {
+              @for (rect of svgRects(); track trackByIndex($index)) {
                 <rect
                   [attr.x]="rect.x"
                   [attr.y]="rect.y"

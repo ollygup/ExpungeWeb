@@ -17,6 +17,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { PdfService } from '../../services/pdf.service';
 import { ThemeService } from '../../services/theme.service';
 import { ToolEntry } from '../home/features-registry';
+import { DataManagerService } from '../../services/data-manager.service';
 
 type MobileTab = 'document' | 'tools';
 
@@ -30,6 +31,7 @@ export class LayoutComponent implements OnDestroy {
   // ── Injections ───────────────────────────────────────────────
   readonly pdfService   = inject(PdfService);
   readonly themeService = inject(ThemeService);
+  readonly dataManagerService = inject(DataManagerService);
 
   // ── Inputs / Outputs ─────────────────────────────────────────
   readonly tools      = input<ToolEntry[]>([]);
@@ -106,7 +108,10 @@ export class LayoutComponent implements OnDestroy {
 
   async onFileChange(event: Event): Promise<void> {
     const file = (event.target as HTMLInputElement).files?.[0];
-    if (file?.type === 'application/pdf') await this.pdfService.loadFromFile(file);
+    if (file?.type === 'application/pdf') {
+      await this.pdfService.loadFromFile(file);
+      await this.dataManagerService.refresh();
+    }
     (event.target as HTMLInputElement).value = '';
   }
 
@@ -122,9 +127,12 @@ export class LayoutComponent implements OnDestroy {
     e.preventDefault();
     this.isDraggingOver.set(false);
     const file = e.dataTransfer?.files[0];
-    if (file?.type === 'application/pdf') await this.pdfService.loadFromFile(file);
+    if (file?.type === 'application/pdf') {
+      await this.pdfService.loadFromFile(file);
+      await this.dataManagerService.refresh();
+    }
   }
-
+  
   // ── Panel resize ─────────────────────────────────────────────
   startResize(e: MouseEvent): void {
     this.isResizing   = true;

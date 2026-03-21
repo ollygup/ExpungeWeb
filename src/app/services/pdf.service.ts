@@ -41,21 +41,15 @@ export class PdfService {
 
   private pdfJsDoc: PDFDocumentProxy | null = null;
 
-  constructor() {
-    effect(() => {
-      const bytes = this.currentBytes();
-      const filename = this.filename();
-      if (!bytes || !filename) return;
-      this.idb.updateCurrentBytes(bytes).catch(err =>
-        customLogger.error('[PdfService] IDB persist failed:', err),
-      );
-    });
-  }
+  constructor() { }
 
   // ── Load ───────────────────────────────────────────────────────────────────
   async loadFromIndexedDB(): Promise<boolean> {
     const stored = await this.idb.load();
-    if (!stored) return false;
+    if (!stored) {
+      return false;
+    }
+    customLogger.log(`[PdfService] loadFromIndexedDB: found "${stored.filename}", initDocument...`);
     await this.initDocument(stored.currentBytes, stored.filename);
     return true;
   }
@@ -70,6 +64,7 @@ export class PdfService {
   async revertToOriginal(): Promise<void> {
     const stored = await this.idb.load();
     if (!stored) return;
+    await this.idb.updateCurrentBytes(stored.originalBytes);
     await this.initDocument(stored.originalBytes, stored.filename);
     this.renderTrigger$.next();
   }
@@ -96,6 +91,8 @@ export class PdfService {
 
   // ── commitBytes ────────────────────────────────────────────────────────────
   async commitBytes(newBytes: Uint8Array): Promise<void> {
+    customLogger.log(`[PdfService] commitBytes: ${newBytes.byteLength} bytes`);
+    await this.idb.updateCurrentBytes(newBytes);
     await this.initDocument(newBytes, this.filename());
     this.renderTrigger$.next();
   }
@@ -107,6 +104,7 @@ export class PdfService {
     this.filename.set(name);
     this.totalPagesSignal.set(this.pdfJsDoc.numPages);
     this.currentBytes.set(bytes);
+    customLogger.log(`[PdfService] initDocument: done — ${this.pdfJsDoc.numPages} pages`);
   }
 
   getPage(pageNum: number): Promise<PDFPageProxy> | null {
@@ -175,5 +173,16 @@ export class PdfService {
     a.download = this.filename() || 'redacted.pdf';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Clear ───────────────────────────────────────────────────────────────
+  clear(): void {
+    customLogger.log('[PdfService] clear: wiping all state, firing renderTrigger$');
+    this.pdfJsDoc = null;
+    this.currentBytes.set(null);
+    this.filename.set('');
+    this.totalPagesSignal.set(0);
+    this._currentPageInfo = { page: 1, scale: 1 };
+    this.renderTrigger$.next();
   }
 }
