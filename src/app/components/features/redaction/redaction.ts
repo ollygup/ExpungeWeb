@@ -19,6 +19,9 @@ import { OcrService } from './ocr.service';
 import { HighlightService, PageHighlight } from '../../../services/highlight.service';
 import { SearchMatch, OcrMatch } from './redaction.types';
 import { customLogger } from '../../../../utils/custom-logger';
+import { DrawService } from '../../../services/draw.service';
+
+export type RedactionTab = 'search' | 'draw';
 
 @Component({
   selector: 'app-redaction',
@@ -29,43 +32,55 @@ import { customLogger } from '../../../../utils/custom-logger';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RedactionComponent implements OnDestroy {
-  private pdfService = inject(PdfService);
-  private redactionService = inject(RedactionService);
-  private ocrService = inject(OcrService);
+  private pdfService        = inject(PdfService);
+  private redactionService  = inject(RedactionService);
+  private ocrService        = inject(OcrService);
   protected highlightService = inject(HighlightService);
-  private cdr = inject(ChangeDetectorRef);
+  protected drawService     = inject(DrawService);
+  private cdr               = inject(ChangeDetectorRef);
+
+  // ── Tab ────────────────────────────────────────────────────────────────────
+  readonly activeTab = signal<RedactionTab>('search');
+
+  onTabChange(tab: RedactionTab): void {
+    this.activeTab.set(tab);
+    // When switching away from draw, turn off draw mode on the viewer
+    if (tab !== 'draw') {
+      this.drawService.disableDrawMode();
+    }
+  }
 
   // ── State signals ──────────────────────────────────────────────────────────
-  searchTerm = signal('');
-  isSearching = signal(false);
-  isOcrSearching = signal(false);
-  isRedacting = signal(false);
-  hasSearched = signal(false);
-  errorMessage = signal('');
-  successMessage = signal('');
+  searchTerm        = signal('');
+  isSearching       = signal(false);
+  isOcrSearching    = signal(false);
+  isRedacting       = signal(false);
+  hasSearched       = signal(false);
+  errorMessage      = signal('');
+  successMessage    = signal('');
 
-  textMatches = signal<SearchMatch[]>([]);
+  textMatches       = signal<SearchMatch[]>([]);
   includeTextMatches = signal(true);
 
-  ocrMatches = signal<OcrMatch[]>([]);
-  ocrEnabled = signal(true);
+  ocrMatches        = signal<OcrMatch[]>([]);
+  ocrEnabled        = signal(true);
 
   redactionProgress = signal<{ page: number; total: number } | null>(null);
-  ocrProgress = signal<{ page: number; total: number } | null>(null);
-  redactedBytes = signal<Uint8Array | null>(null);
-  redactedFilename = signal('');
+  ocrProgress       = signal<{ page: number; total: number } | null>(null);
+  redactedBytes     = signal<Uint8Array | null>(null);
+  redactedFilename  = signal('');
 
   // ── Progress bar ───────────────────────────────────────────────────────────
   readonly barWidth   = signal(0);
   readonly barVisible = signal(false);
-  
+
   private startBar(): void {
     this.barWidth.set(0);
     this.barVisible.set(true);
     this.cdr.markForCheck();
     this.barWidth.set(8);
   }
-  
+
   private updateBar(page: number, total: number): void {
     const next = 8 + (page / total) * 85;
     if (next > this.barWidth()) {
@@ -73,7 +88,7 @@ export class RedactionComponent implements OnDestroy {
       this.cdr.markForCheck();
     }
   }
-  
+
   private completeBar(): void {
     this.barWidth.set(100);
     this.cdr.markForCheck();
@@ -83,25 +98,29 @@ export class RedactionComponent implements OnDestroy {
       this.cdr.markForCheck();
     }, 600);
   }
-  
+
   private resetBar(): void {
     this.barWidth.set(0);
     this.barVisible.set(false);
   }
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  readonly textMatchCount = computed(() => this.textMatches().length);
-  readonly ocrMatchCount = computed(() => this.ocrMatches().length);
+  readonly textMatchCount  = computed(() => this.textMatches().length);
+  readonly ocrMatchCount   = computed(() => this.ocrMatches().length);
   readonly totalMatchCount = computed(() => this.textMatchCount() + this.ocrMatchCount());
-  readonly pdfIsLoaded = computed(() => this.pdfService.isLoaded());
+  readonly pdfIsLoaded     = computed(() => this.pdfService.isLoaded());
 
   readonly canRedact = computed(() => {
     if (this.isRedacting() || this.isSearching() || this.isOcrSearching()) return false;
     if (this.totalMatchCount() === 0) return false;
     const hasTextSelected = this.textMatchCount() > 0 && this.includeTextMatches();
-    const hasOcrSelected = this.ocrMatches().some(m => m.checked);
+    const hasOcrSelected  = this.ocrMatches().some(m => m.checked);
     return hasTextSelected || hasOcrSelected;
   });
+
+  readonly canRedactDrawn = computed(() =>
+    !this.isRedacting() && this.drawService.hasRects()
+  );
 
   readonly selectedCount = computed(() => {
     const textCount = (this.includeTextMatches() && this.textMatchCount() > 0)
@@ -116,8 +135,8 @@ export class RedactionComponent implements OnDestroy {
   // ── Search ─────────────────────────────────────────────────────────────────
   async onSearch(): Promise<void> {
     const term = this.searchInput.trim();
-    if (!term) { this.errorMessage.set('Please enter a search term.'); return; }
-    if (!this.pdfIsLoaded()) { this.errorMessage.set('No PDF loaded.'); return; }
+    if (!term)              { this.errorMessage.set('Please enter a search term.'); return; }
+    if (!this.pdfIsLoaded()) { this.errorMessage.set('No PDF loaded.');             return; }
 
     this.errorMessage.set('');
     this.successMessage.set('');
@@ -171,7 +190,7 @@ export class RedactionComponent implements OnDestroy {
       if (!pageText) continue;
 
       const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escaped, 'gi');
+      const regex   = new RegExp(escaped, 'gi');
       let match: RegExpExecArray | null;
 
       const rects = await this.pdfService.getPageTextMatchRects(pageNum, term);
@@ -179,16 +198,11 @@ export class RedactionComponent implements OnDestroy {
 
       while ((match = regex.exec(pageText)) !== null) {
         const ctxStart = Math.max(0, match.index - 40);
-        const ctxEnd = Math.min(pageText.length, match.index + term.length + 40);
-        const rawCtx = pageText.slice(ctxStart, ctxEnd).replace(/\s+/g, ' ').trim();
-        const context = (ctxStart > 0 ? '…' : '') + rawCtx + (ctxEnd < pageText.length ? '…' : '');
+        const ctxEnd   = Math.min(pageText.length, match.index + term.length + 40);
+        const rawCtx   = pageText.slice(ctxStart, ctxEnd).replace(/\s+/g, ' ').trim();
+        const context  = (ctxStart > 0 ? '…' : '') + rawCtx + (ctxEnd < pageText.length ? '…' : '');
 
-        matches.push({
-          page: pageNum,
-          context,
-          term,
-          rect: rects[rectIndex] ?? rects[0],
-        });
+        matches.push({ page: pageNum, context, term, rect: rects[rectIndex] ?? rects[0] });
         rectIndex = (rectIndex + 1) % Math.max(rects.length, 1);
       }
     }
@@ -200,7 +214,6 @@ export class RedactionComponent implements OnDestroy {
     const pdfJsDoc = this.pdfService.getPdfJsDoc();
     if (!pdfJsDoc) return [];
 
-    // startBar() no longer here
     try {
       const results = await this.ocrService.findInImages(
         pdfJsDoc,
@@ -262,14 +275,14 @@ export class RedactionComponent implements OnDestroy {
     this.ocrMatches.set(this.ocrMatches().map(m => ({ ...m, checked })));
   }
 
-  // ── Redact ─────────────────────────────────────────────────────────────────
+  // ── Redact (search results) ────────────────────────────────────────────────
   async onRedact(): Promise<void> {
-    const term = this.searchTerm();
+    const term  = this.searchTerm();
     const bytes = this.pdfService.currentBytes();
     if (!term || !bytes) return;
 
     const includeText = this.includeTextMatches() && this.textMatchCount() > 0;
-    const ocrRects = this.ocrMatches()
+    const ocrRects    = this.ocrMatches()
       .filter(m => m.checked)
       .map(m => ({ pageIndex: m.page - 1, rect: m.rect }));
 
@@ -277,6 +290,35 @@ export class RedactionComponent implements OnDestroy {
 
     if (!includeText && ocrRects.length === 0) return;
 
+    await this.executeRedaction(bytes, { terms: includeText ? [term] : [], ocrRects });
+
+    if (!this.errorMessage()) {
+      this.textMatches.set([]);
+      this.ocrMatches.set([]);
+      this.hasSearched.set(false);
+    }
+  }
+
+  // ── Redact (drawn regions) ─────────────────────────────────────────────────
+  async onRedactDrawn(): Promise<void> {
+    const bytes = this.pdfService.currentBytes();
+    if (!bytes || !this.drawService.hasRects()) return;
+
+    const ocrRects = this.drawService.toRedactionRects();
+    customLogger.log('[Redaction] Drawn rects sent to MuPDF:', JSON.stringify(ocrRects));
+
+    await this.executeRedaction(bytes, { terms: [], ocrRects });
+
+    if (!this.errorMessage()) {
+      this.drawService.clear();
+    }
+  }
+
+  // ── Shared redaction execution ─────────────────────────────────────────────
+  private async executeRedaction(
+    bytes: Uint8Array,
+    payload: { terms: string[]; ocrRects: Array<{ pageIndex: number; rect: [number, number, number, number] }> },
+  ): Promise<void> {
     this.errorMessage.set('');
     this.successMessage.set('');
     this.isRedacting.set(true);
@@ -294,7 +336,7 @@ export class RedactionComponent implements OnDestroy {
     try {
       const result = await this.redactionService.redact(
         bytes.slice(),
-        { terms: includeText ? [term] : [], ocrRects, fillColor: [0, 0, 0], clearMetadata: true },
+        { ...payload, fillColor: [0, 0, 0], clearMetadata: true },
         progress$,
       );
 
@@ -304,9 +346,6 @@ export class RedactionComponent implements OnDestroy {
       this.successMessage.set(
         `Done — ${result.matchCount} occurrence(s) on ${result.pagesAffected} page(s) redacted.`,
       );
-      this.textMatches.set([]);
-      this.ocrMatches.set([]);
-      this.hasSearched.set(false);
     } catch (err: any) {
       this.errorMessage.set('Redaction failed: ' + (err?.message ?? String(err)));
     } finally {
@@ -323,7 +362,7 @@ export class RedactionComponent implements OnDestroy {
     if (bytes) this.redactionService.downloadPDF(bytes, this.redactedFilename());
   }
 
-  // ── Clear ──────────────────────────────────────────────────────────────────
+  // ── Clear (search) ────────────────────────────────────────────────────────
   onClear(): void {
     this.searchInput = '';
     this.searchTerm.set('');
@@ -366,8 +405,12 @@ export class RedactionComponent implements OnDestroy {
       .map(([page, matches]) => ({ page, matches }));
   }
 
+  drawnRectsByPage() {
+    return this.drawService.rectsByPage();
+  }
+
   highlightTerm(context: string, term: string): string {
-    const safe = this.escapeHtml(context);
+    const safe    = this.escapeHtml(context);
     if (!term) return safe;
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return safe.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
@@ -390,5 +433,6 @@ export class RedactionComponent implements OnDestroy {
     this.progressSub?.unsubscribe();
     this.resetBar();
     this.highlightService.clear();
+    this.drawService.disableDrawMode();
   }
 }

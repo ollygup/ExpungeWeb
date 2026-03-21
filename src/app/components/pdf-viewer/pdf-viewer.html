@@ -60,6 +60,14 @@
           </button>
         </div>
 
+        <!-- Draw mode indicator — only visible when active -->
+        @if (drawService.isDrawMode()) {
+          <div class="draw-mode-badge" matTooltip="Draw mode active — drag on PDF to mark regions">
+            <mat-icon>draw</mat-icon>
+            <span>Drawing</span>
+          </div>
+        }
+
         @if (isRendering()) {
           <div class="render-indicator">
             <span class="spin-ring"></span>
@@ -70,17 +78,25 @@
       <!-- Canvas + overlay scroll area -->
       <div class="canvas-scroll" #scrollArea>
         <div class="canvas-wrap"
+             [class.canvas-wrap--draw]="drawService.isDrawMode()"
              [style.transform]="'scale(' + zoomScale() + ')'"
-             [style.transform-origin]="'top center'">
+             [style.transform-origin]="'top center'"
+             (mousedown)="onMouseDown($event)"
+             (mousemove)="onMouseMove($event)"
+             (mouseup)="onMouseUp($event)"
+             (mouseleave)="onMouseLeave($event)"
+             (touchstart)="onTouchStart($event)"
+             (touchmove)="onTouchMove($event)"
+             (touchend)="onTouchEnd($event)">
 
           <!-- PDF render canvas -->
           <canvas #pdfCanvas class="pdf-canvas"></canvas>
 
-          <!-- ── Highlight overlay ──────────────────────────────────────────
+          <!-- ── Highlight + draw overlay ───────────────────────────────────
                SVG is positioned absolutely over the canvas.
                Coordinates are in CSS pixels matching canvas.style dimensions.
                canvas-wrap's CSS transform scales both together automatically.
-          ─────────────────────────────────────────────────────────────────── -->
+          ──────────────────────────────────────────────────────────────────── -->
           @if (svgRects().length > 0) {
             <svg class="highlight-overlay"
                  [attr.width]="svgWidth"

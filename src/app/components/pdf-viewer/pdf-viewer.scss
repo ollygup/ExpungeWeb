@@ -10,7 +10,6 @@
   display: flex;
   flex-direction: column;
   background: var(--bg-base);
-  // transition: var(--transition-theme);
 }
 
 /* ── Empty State ────────────────────────────────────────────── */
@@ -64,7 +63,7 @@
   font-size: 12px;
   color: var(--text-tertiary);
 
-  mat-icon { color: var(--text-tertiary); }
+  mat-icon { color: var(--text-tertiary); line-height: 20px !important; }
 }
 
 /* ── Viewer Body ────────────────────────────────────────────── */
@@ -112,6 +111,8 @@
   color: var(--text-secondary);
   cursor: pointer;
   transition: all var(--transition-fast);
+
+  mat-icon { line-height: 20px !important; }
 
   &:hover:not(:disabled) {
     background: var(--accent-dim);
@@ -197,9 +198,10 @@
 }
 
 .canvas-wrap {
-  display: inline-block;
+  position:         relative;
+  display:          inline-block;
   transform-origin: top center;
-  transition: transform var(--transition-base);
+  transition:       transform var(--transition-base);
 }
 
 .pdf-canvas {
@@ -208,42 +210,36 @@
   box-shadow: var(--shadow-lg);
 }
 
-// ── canvas-wrap needs position: relative for the SVG overlay ──
-.canvas-wrap {
-  position: relative;
-  display:  inline-block; // shrink-wrap to canvas size
-}
-
 // ── Highlight SVG overlay ──────────────────────────────────────
 .highlight-overlay {
   position:       absolute;
   top:            0;
   left:           0;
-  pointer-events: none; // never block mouse events on the canvas
+  pointer-events: none;
   overflow:       visible;
 }
 
 // ── Highlight rect base ───────────────────────────────────────
 .hl-rect {
-  fill:            transparent;
-  stroke-width:    1.5;
-  rx:              2;
-  transition:      fill 0.15s ease, stroke 0.15s ease;
+  fill:         transparent;
+  stroke-width: 1.5;
+  rx:           2;
+  transition:   fill 0.15s ease, stroke 0.15s ease;
 }
 
-// Text match highlight — accent purple, semi-transparent fill
+// Text match — accent purple
 .hl-rect--text {
   fill:   rgba(124, 108, 244, 0.18);
   stroke: rgba(124, 108, 244, 0.7);
 }
 
-// OCR match highlight — amber, semi-transparent fill
+// OCR match — amber
 .hl-rect--ocr {
   fill:   rgba(251, 191, 36, 0.15);
   stroke: rgba(251, 191, 36, 0.65);
 }
 
-// Focused state — stronger fill + glow outline
+// Focused
 .hl-rect--focused {
   stroke-width: 2;
   filter: drop-shadow(0 0 3px currentColor);
@@ -257,6 +253,75 @@
 .hl-rect--ocr.hl-rect--focused {
   fill:   rgba(251, 191, 36, 0.35);
   stroke: rgba(251, 191, 36, 1);
+}
+
+// ── Draw rects — all purple to match app accent theme ────────
+//
+// Design rationale:
+//   Red = destructive (Redact button, delete icons)
+//   Amber = OCR matches
+//   Purple = selection, marking, interactive state  ← drawn regions belong here
+//   Green = success / focused selection
+//
+// Dashed stroke distinguishes draw rects from solid search highlights
+// so all three types (text, ocr, draw) are visually distinct on the canvas.
+
+.hl-rect--draw {
+  fill:             rgba(124, 108, 244, 0.12);
+  stroke:           rgba(124, 108, 244, 0.55);
+  stroke-width:     1.5;
+  stroke-dasharray: 4 2;
+}
+
+.hl-rect--draw-focused {
+  fill:             rgba(74, 222, 128, 0.2);
+  stroke:           rgba(74, 222, 128, 0.9);
+  stroke-width:     2;
+  stroke-dasharray: none;
+  filter:           drop-shadow(0 0 4px rgba(74, 222, 128, 0.5));
+}
+
+.hl-rect--draw-preview {
+  fill:             rgba(124, 108, 244, 0.07);
+  stroke:           rgba(124, 108, 244, 0.7);
+  stroke-width:     1.5;
+  stroke-dasharray: 5 3;
+  pointer-events:   none;
+}
+
+// ── Draw mode ─────────────────────────────────────────────────
+.canvas-wrap--draw {
+  cursor: crosshair !important;
+  * { cursor: crosshair !important; }
+}
+
+.draw-mode-badge {
+  display:       flex;
+  align-items:   center;
+  gap:           5px;
+  margin-left:   auto;
+  padding:       3px 10px;
+  background:    var(--accent-dim);
+  border:        1px solid var(--accent);
+  border-radius: var(--radius-full);
+  color:         var(--accent);
+  font-size:     11px;
+  font-weight:   600;
+  font-family:   var(--font-body);
+  animation:     drawPulse 2s ease-in-out infinite;
+
+  mat-icon {
+    font-size:   13px !important;
+    width:       13px !important;
+    height:      13px !important;
+    line-height: 13px !important;
+    flex-shrink: 0;
+  }
+}
+
+@keyframes drawPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-dim); }
+  50%       { box-shadow: 0 0 0 3px var(--accent-dim); }
 }
 
 /* ── Animations ─────────────────────────────────────────────── */
