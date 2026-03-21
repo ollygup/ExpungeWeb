@@ -76,14 +76,15 @@
 
 /* ── Toolbar ────────────────────────────────────────────────── */
 .viewer-toolbar {
-  display: flex;
+  display:   flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: var(--bg-surface);
+  gap:         4px;
+  padding:     8px 12px;
+  background:  var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
-  transition: var(--transition-theme);
+  transition:  var(--transition-theme);
+  flex-wrap:   wrap; // ← allow badge to wrap to second row if needed
 }
 
 .toolbar-group {
@@ -309,6 +310,7 @@
   font-weight:   600;
   font-family:   var(--font-body);
   animation:     drawPulse 2s ease-in-out infinite;
+  white-space:   nowrap;
 
   mat-icon {
     font-size:   13px !important;
@@ -316,6 +318,13 @@
     height:      13px !important;
     line-height: 13px !important;
     flex-shrink: 0;
+  }
+
+  // On very narrow screens, drop the label and show only the icon
+  @media (max-width: 480px) {
+    padding: 3px 7px;
+
+    span { display: none; }
   }
 }
 
