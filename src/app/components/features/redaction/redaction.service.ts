@@ -4,6 +4,14 @@ import { customLogger } from '../../../../utils/custom-logger';
 
 type ProgressCallback = (p: { page: number; total: number }) => void;
 
+// Full chain of how onprogres works
+// component defines:   p => this.redactionProgress.set(p)
+// component passes it: redactionService.redact(bytes, payload, onProgress)
+// service stores it:   pendingJobs.set(id, { ..., onProgress })
+// worker sends back:   { type: 'progress', page: 3, total: 10 } (via this.worker.onmessage = (event: MessageEvent<WorkerResponse>) )
+// service retrieves:   job.onProgress({ page: 3, total: 10 })
+// which executes:      this.redactionProgress.set({ page: 3, total: 10 })
+// signal updates:      template re-renders with new progress
 interface PendingJob {
   resolve:    (result: RedactionResult) => void;
   reject:     (err: Error) => void;
