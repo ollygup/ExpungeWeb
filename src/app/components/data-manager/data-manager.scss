@@ -1,233 +1,212 @@
+// ── Shared placeholders ───────────────────────────────────────
+%flex-col   { display: flex; flex-direction: column; }
+%flex-row   { display: flex; align-items: center; }
+
+%btn-base {
+  @extend %flex-row;
+  justify-content: center;
+  gap:           0.3rem;
+  padding:       0.45rem 0.5rem;
+  border-radius: 7px;
+  border:        1px solid transparent;
+  font-family:   var(--font-body);
+  font-size:     0.75rem;
+  font-weight:   500;
+  cursor:        pointer;
+  transition:    background 0.15s ease, border-color 0.15s ease;
+
+  .material-icons { font-size: 0.95rem; }
+}
+
+// ── Root ──────────────────────────────────────────────────────
 .dm {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    // padding: 1rem;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  // ── Section ──────────────────────────────────────────────────────
-  
-  .dm-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  
-  .dm-section--muted {
-    opacity: 0.6;
-  }
-  
-  .dm-section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  
-  .dm-section-icon {
-    font-size: 1rem;
-    color: var(--accent);
-  }
-  
-  .dm-section-title {
-    font-family: var(--font-display);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    margin: 0;
-  }
-  
-  .dm-badge {
-    margin-left: auto;
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-    border-radius: 999px;
-    padding: 0.15rem 0.5rem;
-  }
-  
-  // ── Card ──────────────────────────────────────────────────────────
-  
-  .dm-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    background: var(--surface-raised, rgba(255 255 255 / 0.04));
-    border: 1px solid var(--border, rgba(255 255 255 / 0.08));
-    border-radius: 10px;
-    padding: 0.875rem;
-  }
-  
-  // ── Filename ──────────────────────────────────────────────────────
-  
-  .dm-card-filename {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 0; // allow truncation in flex
-  }
-  
-  .dm-file-icon {
-    font-size: 1.1rem;
-    color: var(--accent);
+  @extend %flex-col;
+  gap:        1.5rem;
+  width:      100%;
+  box-sizing: border-box;
+}
+
+// ── Section ───────────────────────────────────────────────────
+.dm-section {
+  @extend %flex-col;
+  gap: 0.75rem;
+
+  &--muted { opacity: 0.6; }
+}
+
+.dm-section-header {
+  @extend %flex-row;
+  gap: 0.5rem;
+}
+
+.dm-section-icon {
+  font-size: 1rem;
+  color:     var(--accent);
+}
+
+.dm-section-title {
+  font-family:     var(--font-display);
+  font-size:       0.8rem;
+  font-weight:     600;
+  letter-spacing:  0.08em;
+  text-transform:  uppercase;
+  color:           var(--text-secondary);
+  margin:          0;
+}
+
+.dm-badge {
+  margin-left:    auto;
+  font-family:    var(--font-mono);
+  font-size:      0.65rem;
+  font-weight:    600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--accent);
+  background:     var(--accent-dim);
+  border:         1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius:  999px;
+  padding:        0.15rem 0.5rem;
+}
+
+// ── Card ──────────────────────────────────────────────────────
+.dm-card {
+  @extend %flex-col;
+  gap:           0.75rem;
+  background:    var(--bg-surface-2);
+  border:        1px solid var(--border-default);
+  border-radius: 10px;
+  padding:       0.875rem;
+}
+
+// ── Filename ──────────────────────────────────────────────────
+.dm-card-filename {
+  @extend %flex-row;
+  gap:       0.5rem;
+  min-width: 0;
+}
+
+.dm-file-icon {
+  font-size:  1.1rem;
+  color:      var(--accent);
+  flex-shrink: 0;
+}
+
+.dm-filename-text {
+  font-family:   var(--font-mono);
+  font-size:     0.78rem;
+  color:         var(--text-primary);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Meta list ─────────────────────────────────────────────────
+.dm-meta {
+  @extend %flex-col;
+  gap:     0.35rem;
+  margin:  0;
+  padding: 0;
+}
+
+.dm-meta-row {
+  @extend %flex-row;
+  justify-content: space-between;
+  align-items:     baseline;
+  gap:             0.5rem;
+
+  dt {
+    font-size:  0.72rem;
+    font-weight: 500;
+    color:      var(--text-secondary);
     flex-shrink: 0;
   }
-  
-  .dm-filename-text {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
+
+  dd {
+    font-family:   var(--font-mono);
+    font-size:     0.72rem;
+    color:         var(--text-primary);
+    margin:        0;
+    text-align:    right;
+    white-space:   nowrap;
+    overflow:      hidden;
     text-overflow: ellipsis;
+    max-width:     60%;
   }
-  
-  // ── Meta list ─────────────────────────────────────────────────────
-  
-  .dm-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .dm-meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.5rem;
-  
-    dt {
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-  
-    dd {
-      font-family: var(--font-mono);
-      font-size: 0.72rem;
-      color: var(--text-primary);
-      margin: 0;
-      text-align: right;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 60%;
-    }
-  }
-  
-  // Dates are the most verbose — hide time portion on very narrow panels
-  .dm-meta-row--date dd {
+
+  &--date dd {
     font-size: 0.68rem;
-    color: var(--text-secondary);
+    color:     var(--text-secondary);
   }
-  
-  // ── Actions ───────────────────────────────────────────────────────
-  
-  .dm-card-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
-  }
-  
-  .dm-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    padding: 0.45rem 0.5rem;
-    border-radius: 7px;
-    border: 1px solid transparent;
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-  
-    .material-icons {
-      font-size: 0.95rem;
-    }
-  }
-  
-  .dm-btn--secondary {
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+// ── Actions ───────────────────────────────────────────────────
+.dm-card-actions {
+  @extend %flex-row;
+  gap:        0.5rem;
+  margin-top: 0.25rem;
+}
+
+.dm-btn {
+  @extend %btn-base;
+  flex: 1;
+
+  &--secondary {
+    background:   var(--accent-dim);
     border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-    color: var(--accent);
-  
-    &:hover {
-      background: color-mix(in srgb, var(--accent) 18%, transparent);
-    }
+    color:        var(--accent);
+
+    &:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
   }
-  
-  .dm-btn--danger {
-    background: color-mix(in srgb, #f47c7c 8%, transparent);
-    border-color: color-mix(in srgb, #f47c7c 22%, transparent);
-    color: #f47c7c;
-  
-    &:hover {
-      background: color-mix(in srgb, #f47c7c 15%, transparent);
-    }
+
+  &--danger {
+    background:   var(--color-danger-dim);
+    border-color: rgba(248, 113, 113, 0.22);
+    color:        var(--color-danger);
+
+    &:hover { background: color-mix(in srgb, var(--color-danger) 15%, transparent); }
   }
-  
-  // ── States (loading / empty / error) ─────────────────────────────
-  
-  .dm-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 1.25rem 0.5rem;
-    border-radius: 10px;
-    border: 1px dashed var(--border, rgba(255 255 255 / 0.08));
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    text-align: center;
-  
-    .material-icons {
-      font-size: 1.5rem;
-      opacity: 0.5;
-    }
-  }
-  
-  .dm-state--error {
-    border-color: rgba(244 124 124 / 0.25);
-    color: #f47c7c;
-  
+}
+
+// ── States ────────────────────────────────────────────────────
+.dm-state {
+  @extend %flex-col;
+  align-items:   center;
+  justify-content: center;
+  gap:           0.5rem;
+  padding:       1.25rem 0.5rem;
+  border-radius: 10px;
+  border:        1px dashed var(--border-default);
+  font-size:     0.75rem;
+  color:         var(--text-secondary);
+  text-align:    center;
+
+  .material-icons { font-size: 1.5rem; opacity: 0.5; }
+
+  &--error {
+    border-color: rgba(248, 113, 113, 0.25);
+    color:        var(--color-danger);
+
     .material-icons { opacity: 0.8; }
   }
-  
-  // Spinner
-  .dm-spinner {
-    width: 1.1rem;
-    height: 1.1rem;
-    border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: dm-spin 0.7s linear infinite;
-  }
-  
-  @keyframes dm-spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  // ── Coming soon text ──────────────────────────────────────────────
-  
-  .dm-coming-text {
-    font-size: 0.73rem;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.5;
-    padding-left: 1.5rem; // align with icon width
-  }
+}
+
+// ── Spinner ───────────────────────────────────────────────────
+.dm-spinner {
+  width:           1.1rem;
+  height:          1.1rem;
+  border:          2px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top-color: var(--accent);
+  border-radius:   50%;
+  animation:       dm-spin 0.7s linear infinite;
+}
+
+@keyframes dm-spin { to { transform: rotate(360deg); } }
+
+// ── Coming soon ───────────────────────────────────────────────
+.dm-coming-text {
+  font-size:    0.73rem;
+  color:        var(--text-secondary);
+  margin:       0;
+  line-height:  1.5;
+  padding-left: 1.5rem;
+}
