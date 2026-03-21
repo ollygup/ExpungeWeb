@@ -9,13 +9,12 @@
       <mat-icon class="mat-icon-sm">close</mat-icon>
     </button>
   </div>
-  }
-  
-  <app-layout
-    [tools]="tools"
-    [activeTool]="activeTool()"
-    (toolChange)="activeTool.set($event)">
-  
-    <app-pdf-viewer layoutSlot="doc"></app-pdf-viewer>
-  
-  </app-layout>
+}
+
+<app-layout
+  [tools]="tools"
+  [activeTool]="activeTool()"
+  (toolChange)="activeTool.set($event)">
+
+  <app-pdf-viewer layoutSlot="doc"></app-pdf-viewer>
+</app-layout>

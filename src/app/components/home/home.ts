@@ -1,5 +1,5 @@
+import { Component, inject, signal, effect, Type } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
 import { LayoutComponent } from '../layout/layout';
 import { MatIconModule } from '@angular/material/icon';
 import { PdfViewerComponent } from '../pdf-viewer/pdf-viewer';
@@ -13,8 +13,7 @@ import { SwUpdateService } from '../../services/sw-update.service';
   styleUrl: './home.scss',
 })
 export class HomeComponent {
-  readonly swUpdateService   = inject(SwUpdateService);
-
+  readonly swUpdateService = inject(SwUpdateService);
   readonly tools = FEATURES_REGISTRY;
   readonly activeTool = signal(FEATURES_REGISTRY[0].id);
 }

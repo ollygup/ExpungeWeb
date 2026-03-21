@@ -9,6 +9,7 @@ import {
   ElementRef,
   Type,
   OnDestroy,
+  effect,
 } from '@angular/core';
 import { AsyncPipe, NgComponentOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -46,9 +47,7 @@ export class LayoutComponent implements OnDestroy {
     this.tools().find(t => t.id === this.activeTool())
   );
 
-  readonly activeToolComponent = computed<Type<unknown> | null>(() =>
-    this.activeToolEntry()?.component ?? null
-  );
+  readonly activeToolComponent = signal<Type<unknown> | null>(null);
 
   // ── Observables ──────────────────────────────────────────────
   readonly filename  = this.pdfService.filename$;
@@ -71,6 +70,12 @@ export class LayoutComponent implements OnDestroy {
   private readonly clickOutsideRef = (e: MouseEvent)  => this.onClickOutside(e);
 
   constructor() {
+    effect(() => {
+      const entry = this.activeToolEntry();
+      if (!entry) return;
+      entry.component().then(comp => this.activeToolComponent.set(comp));
+    });
+  
     document.addEventListener('mousemove', this.mouseMoveRef);
     document.addEventListener('mouseup',   this.mouseUpRef);
     document.addEventListener('click',     this.clickOutsideRef);
