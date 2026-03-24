@@ -39,12 +39,15 @@ async function performRedaction(
   options: RedactionOptions,
   jobId: string,
 ): Promise<RedactionResult> {
-  const {
-    terms,
-    fillColor = [0, 0, 0],
-    clearMetadata = true,
-    ocrRects = [],
-  } = options;
+  customLogger.log(`[Worker] Starting redaction job ${jobId} with options:`, options);
+  
+  const terms = options.terms;
+  const fillColor = options.redactionMode === 'blendIn' ? [255, 255, 255] : [0, 0, 0];
+  const clearMetadata = options.clearMetadata ?? false;
+  const redactionMode = options.redactionMode === 'redact' ? 'redact' : 'blendIn';
+  const ocrRects = options.ocrRects ? options.ocrRects : [];
+
+  customLogger.log(`[Worker] Updated value for fillColor: ${fillColor}, redactionMode: ${redactionMode}`);
 
   const doc = mupdf.Document.openDocument(pdfBytes, 'application/pdf') as MuPDF.PDFDocument;
   let totalMatches = 0;
@@ -64,6 +67,18 @@ async function performRedaction(
     customLogger.log(`[Worker] Page ${pageIndex} bounds:`, bounds);
     let pageHadMatch = false;
 
+    let pagePixmap: MuPDF.Pixmap | null = null;
+    if (redactionMode === 'blendIn') {
+      try {
+        pagePixmap = page.toPixmap(mupdf.Matrix.scale(2, 2), mupdf.ColorSpace.DeviceRGB, true);
+        customLogger.log(`[Worker] PagePixmap: ${pagePixmap}`);
+      } catch (err) {
+        customLogger.warn('[Worker] Failed to render pixmap for blendIn mode:', err);
+      }
+    }
+
+    const blendInOverlays: Array<{ rect: MuPDF.Rect; color: [number, number, number] }> = [];
+
     // ── Text-based redaction ───────────────────────────────────────────────
     // Uses MuPDF's built-in text search — accurate, no OCR needed.
     for (const term of terms) {
@@ -79,10 +94,20 @@ async function performRedaction(
             Math.max(...xs), Math.max(...ys),
           ];
 
+          const color = redactionMode === 'blendIn' && pagePixmap
+            ? sampleBackgroundColor(pagePixmap, rect, bounds, 2)
+            : fillColor;
+
+          customLogger.log(`[Worker] Color: ${color}`);
+          customLogger.log(`[Worker] redactionMode: ${redactionMode}`);
+
           const annot = page.createAnnotation('Redact');
           annot.setRect(rect);
-          annot.setColor(fillColor);
           annot.update();
+
+          if (redactionMode === 'blendIn') {
+            blendInOverlays.push({ rect, color: color as [number, number, number] });
+          }
 
           totalMatches++;
           pageHadMatch = true;
@@ -105,16 +130,49 @@ async function performRedaction(
         pageHeight - rect[1], // flip: PDF y0 (bottom in PDF) → MuPDF y1 (bottom in MuPDF)
       ];
 
+      const color = redactionMode === 'blendIn' && pagePixmap
+        ? sampleBackgroundColor(pagePixmap, mupdfRect, bounds, 2)
+        : fillColor;
+
+      customLogger.log(`[Worker] Color: ${color}`);
+      customLogger.log(`[Worker] redactionMode: ${redactionMode}`);
+
       const annot = page.createAnnotation('Redact');
       annot.setRect(mupdfRect);
-      annot.setColor(fillColor);
       annot.update();
+
+      if (redactionMode === 'blendIn') {
+        blendInOverlays.push({ rect: mupdfRect, color: color as [number, number, number] });
+      }
       totalMatches++;
       pageHadMatch = true;
     }
 
     if (pageHadMatch) {
       page.applyRedactions(true, 2);
+
+      const padding = 2;
+
+      if (redactionMode === 'blendIn') {
+        for (const { rect, color } of blendInOverlays) {
+          const expandedRect: MuPDF.Rect = [
+            rect[0] - padding, // x0 left
+            rect[1] - padding, // y0 bottom
+            rect[2] + padding, // x1 right
+            rect[3] + padding, // y1 top
+          ];
+          const overlayAnnot = page.createAnnotation('Square');
+          overlayAnnot.setRect(expandedRect);
+
+          const normalizedColor = toAnnotColor(color);
+          overlayAnnot.setColor(normalizedColor);
+          overlayAnnot.setInteriorColor(normalizedColor);
+
+          overlayAnnot.setBorderWidth(0);
+          overlayAnnot.setOpacity(1);
+          overlayAnnot.update();
+        }
+      }
       affectedPages.add(pageIndex);
     }
   }
@@ -127,6 +185,88 @@ async function performRedaction(
     rawBytes.byteOffset + rawBytes.byteLength,
   ));
   return { bytes: outBytes, matchCount: totalMatches, pagesAffected: affectedPages.size };
+}
+
+function sampleBackgroundColor(
+  pixmap: MuPDF.Pixmap,
+  rect: MuPDF.Rect,
+  bounds: MuPDF.Rect,
+  scale: number,
+): [number, number, number] {
+  try {
+    const [x0, y0, x1, y1] = rect;
+    const [bx0, by0] = bounds;
+
+    const px0 = Math.max(0, Math.floor((x0 - bx0) * scale));
+    const py0 = Math.max(0, Math.floor((y0 - by0) * scale));
+    const px1 = Math.min(pixmap.getWidth() - 1, Math.floor((x1 - bx0) * scale));
+    const py1 = Math.min(pixmap.getHeight() - 1, Math.floor((y1 - by0) * scale));
+
+    let r = 255, g = 255, b = 255;
+    const pixels = pixmap.getPixels();
+    const width = pixmap.getWidth();
+    const height = pixmap.getHeight();
+    const n = pixmap.getNumberOfComponents();
+
+    if (pixels && n >= 3) {
+      let count = 0;
+      let sumR = 0, sumG = 0, sumB = 0;
+
+      const sample = (px: number, py: number) => {
+        if (px < 0 || px >= width || py < 0 || py >= height) return;
+
+        const idx = (py * width + px) * n;
+
+        const sr = pixels[idx];
+        const sg = pixels[idx + 1];
+        const sb = pixels[idx + 2];
+
+        // skip likely text (dark pixels)
+        if (sr < 40 && sg < 40 && sb < 40) return;
+
+        sumR += sr;
+        sumG += sg;
+        sumB += sb;
+        count++;
+      };
+
+      // sample just outside the rect
+
+      // top
+      for (let px = px0; px <= px1; px++) {
+        sample(px, py0 - 1);
+      }
+
+      // bottom
+      for (let px = px0; px <= px1; px++) {
+        sample(px, py1 + 1);
+      }
+
+      // left
+      for (let py = py0; py <= py1; py++) {
+        sample(px0 - 1, py);
+      }
+
+      // right
+      for (let py = py0; py <= py1; py++) {
+        sample(px1 + 1, py);
+      }
+
+      if (count > 0) {
+        r = Math.round(sumR / count);
+        g = Math.round(sumG / count);
+        b = Math.round(sumB / count);
+      }
+    }
+
+    return [r, g, b];
+  } catch {
+    return [255, 255, 255];
+  }
+}
+function toAnnotColor(color: [number, number, number]): [number, number, number] {
+  const clamp = (v: number) => Math.max(0, Math.min(1, v));
+  return [clamp(color[0] / 255), clamp(color[1] / 255), clamp(color[2] / 255)];
 }
 
 function stripMetadata(doc: MuPDF.PDFDocument): void {

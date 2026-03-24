@@ -1,4 +1,3 @@
-<!-- redaction.component.html -->
 <div class="redaction-root">
 
   <!-- ── No PDF loaded ──────────────────────────────────────────────────────── -->
@@ -25,6 +24,20 @@
         @if (drawService.rectCount() > 0) {
           <span class="pill-badge">{{ drawService.rectCount() }}</span>
         }
+      </button>
+    </div>
+
+    <!-- ── Redaction mode toggle ──────────────────────────────────────────────── -->
+    <div class="mode-toggle">
+      <button class="mode-btn" [class.mode-btn--active]="redactionMode() === 'redact'"
+              (click)="redactionMode.set('redact')">
+        <mat-icon>block</mat-icon>
+        Black
+      </button>
+      <button class="mode-btn" [class.mode-btn--active]="redactionMode() === 'blendIn'"
+              (click)="redactionMode.set('blendIn')">
+        <mat-icon>blur_on</mat-icon>
+        Blend In
       </button>
     </div>
 
@@ -258,10 +271,9 @@
             } @else {
               <mat-icon>hide_source</mat-icon>
             }
-            Redact All
+            Redact
           </button>
         </div>
-
         @if (isRedacting()) {
           <div class="action-bar action-bar--has-results">
             <div class="action-bar__progress">

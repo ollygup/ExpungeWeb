@@ -58,6 +58,7 @@ export class RedactionComponent implements OnDestroy {
   readonly ocrProgress        = signal<{ page: number; total: number } | null>(null);
   readonly redactedBytes      = signal<Uint8Array | null>(null);
   readonly redactedFilename   = signal('');
+  readonly redactionMode      = signal<'redact' | 'blendIn'>('redact');
 
   // ── Progress bar ───────────────────────────────────────────────────────────
   readonly barWidth   = signal(0);
@@ -326,7 +327,7 @@ export class RedactionComponent implements OnDestroy {
     try {
       const result = await this.redactionService.redact(
         bytes.slice(),
-        { ...payload, fillColor: [0, 0, 0], clearMetadata: true },
+        { ...payload, fillColor: [0, 0, 0], clearMetadata: true, redactionMode: this.redactionMode() },
         onProgress,
       );
 

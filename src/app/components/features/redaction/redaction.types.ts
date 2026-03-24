@@ -22,6 +22,7 @@ export interface SearchMatch {
     fillColor?: [number, number, number];
     clearMetadata?: boolean;
     caseSensitive?: boolean;
+    redactionMode?: 'redact' | 'blendIn';
     // Pre-computed rects from OCR (pageIndex is 0-indexed to match MuPDF worker)
     ocrRects?: { pageIndex: number; rect: [number, number, number, number] }[];
   }
