@@ -16,6 +16,7 @@ import { HighlightService, PageHighlight } from '../../../services/highlight.ser
 import { SearchMatch, OcrMatch } from './redaction.types';
 import { customLogger } from '../../../../utils/custom-logger';
 import { DrawService } from '../../../services/draw.service';
+import { Subscription } from 'rxjs';
 
 export type RedactionTab = 'search' | 'draw';
 
@@ -85,6 +86,19 @@ export class RedactionComponent implements OnDestroy {
   private resetBar(): void {
     this.barWidth.set(0);
     this.barVisible.set(false);
+  }
+
+  private subs = new Subscription();
+  
+  ngOnInit(): void {
+    this.pdfService.loadFromIndexedDB();
+
+    this.subs.add(
+      this.pdfService.renderTrigger$.subscribe(() => {
+        this.onClear();
+        this.drawService.clear();
+      })
+    );
   }
 
   // ── Derived ────────────────────────────────────────────────────────────────
