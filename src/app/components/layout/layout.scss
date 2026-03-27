@@ -399,19 +399,20 @@
 .tool-rail {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;        
   gap: 2px;
   padding: 8px 6px;
-  width: 52px;
+  width: 52px;                 // mobile default; overridden below
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
 }
 
+// Replace existing .rail-btn block
 .rail-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
+  width: 100%;
   height: 38px;
   border-radius: 10px;
   border: none;
@@ -420,11 +421,13 @@
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
   position: relative;
+  padding: 0;
 
   mat-icon {
     font-size: 20px;
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
   }
 
   &:hover {
@@ -450,11 +453,80 @@
   }
 }
 
+.rail-label {
+  display: none;
+}
+
 .rail-divider {
   width: 24px;
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 4px 0;
+}
+
+// ── Desktop: widen rail, show labels ────────────────────────
+@media (min-width: 1280px) {
+  .tool-rail {
+    width: 180px;
+    max-width: 180px;
+    padding: 10px 8px;
+    border-right: 1px solid var(--border-default);
+    gap: 3px;
+  }
+
+  .rail-btn {
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 12px;
+    height: 42px;
+    border-radius: 8px;
+
+    &--active {
+      background: var(--accent-dim);
+      color: var(--accent);
+
+      mat-icon { color: var(--accent); }
+
+      &::before {
+        background: var(--accent);
+        left: -8px;
+      }
+    }
+
+    &:hover {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+  }
+
+  .rail-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .rail-divider {
+    width: 100%;
+    margin: 6px 0;
+  }
+}
+
+@media (min-width: 1920px) {
+  .tool-rail {
+    width: 208px;
+    max-width: 208px;
+  }
+}
+
+@media (min-width: 2560px) {
+  .tool-rail {
+    width: 224px;
+    max-width: 224px;
+  }
 }
 
 // ── Tools aside layout ───────────────────────────────────────

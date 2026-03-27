@@ -113,6 +113,7 @@
         <button class="rail-btn" [class.rail-btn--active]="activeTool() === tool.id" [matTooltip]="tool.label"
           [attr.aria-label]="tool.label" matTooltipPosition="left" (click)="toolChange.emit(tool.id)">
           <mat-icon>{{ tool.icon }}</mat-icon>
+          <span class="rail-label">{{ tool.label }}</span>
         </button>
         @if (tool.dividerAfter) {
         <hr class="rail-divider" />
