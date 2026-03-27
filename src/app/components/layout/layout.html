@@ -126,7 +126,14 @@
           <span>{{ activeToolEntry()?.label }}</span>
         </header>
         <div class="feature-panel__body">
-          <ng-container [ngComponentOutlet]="activeToolComponent()" />
+          @if (activeToolEntry()?.comingSoon) {
+            <div class="coming-soon">
+              <span class="material-icons">hourglass_empty</span>
+              <p>Coming soon</p>
+            </div>
+          } @else {
+            <ng-container [ngComponentOutlet]="activeToolComponent()" />
+          }
         </div>
       </div>
 
