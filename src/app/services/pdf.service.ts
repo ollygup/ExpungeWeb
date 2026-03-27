@@ -82,7 +82,7 @@ export class PdfService {
     canvas.style.width = `${Math.floor(viewport.width / dpr)}px`;
     canvas.style.height = `${Math.floor(viewport.height / dpr)}px`;
 
-    const ctx = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const renderTask: RenderTask = page.render({ canvas, viewport });

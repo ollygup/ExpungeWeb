@@ -11,6 +11,7 @@ export interface OcrPageBlob {
   // The worker adds these back before converting OCR coords → PDF coords.
   offsetPixelX: number;
   offsetPixelY: number;
+  preprocessScale:  number; // default 1
 }
 
 export type OcrWorkerMessage = {

@@ -1,7 +1,7 @@
   'use strict';
 
   // ── VERSION ──────────────────────────────────────────────────
-  const VERSION    = '1.0.13';
+  const VERSION    = '1.0.16';
   const CACHE_NAME = `expunge-v${VERSION}`;
 
   // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -13,6 +13,7 @@
     '/assets/mupdf/mupdf.js',
     '/assets/mupdf/mupdf-wasm.js',
     '/assets/mupdf/mupdf-wasm.wasm',
+    '/assets/opencv/opencv.js',
   ];
 
   // ── Install ──────────────────────────────────────────────────

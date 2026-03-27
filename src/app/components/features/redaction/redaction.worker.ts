@@ -55,6 +55,7 @@ async function performRedaction(
   const pageCount = doc.countPages();
 
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+    const pageStart = performance.now();
     postMessage({
       type: 'progress',
       id: jobId,
@@ -118,6 +119,7 @@ async function performRedaction(
     // ── OCR rect-based redaction ───────────────────────────────────────────
     const pageOcrRects = ocrRects.filter(r => r.pageIndex === pageIndex);
     for (const { rect } of pageOcrRects) {
+      const startTime = performance.now();
       const bounds = page.getBounds();
       const pageHeight = bounds[3];
 
@@ -144,6 +146,10 @@ async function performRedaction(
       if (redactionMode === 'blendIn') {
         blendInOverlays.push({ rect: mupdfRect, color: color as [number, number, number] });
       }
+
+      const endTime = performance.now();
+      customLogger.log(`[Worker] OCR rect redaction took ${(endTime - startTime).toFixed(2)} ms`);
+
       totalMatches++;
       pageHadMatch = true;
     }
@@ -175,6 +181,9 @@ async function performRedaction(
       }
       affectedPages.add(pageIndex);
     }
+
+    const pageEnd = performance.now(); // ── end timer
+    customLogger.log(`[Worker] Page ${pageIndex} redaction time: ${(pageEnd - pageStart).toFixed(2)} ms`);
   }
 
   if (clearMetadata) stripMetadata(doc);

@@ -20,7 +20,11 @@ async function ensureScribe(): Promise<void> {
     // @ts-ignore — no type declarations for scribe.js-ocr
     const mod = await import(/* @vite-ignore */ url.href);
     scribe = mod.default ?? mod;
-    await scribe.init({ pdf: false, ocr: true });
+    await scribe.init({
+      pdf: false,
+      ocr: true,
+      ocrQuality: 'quality'
+    });
   })();
 
   return scribeReady;
@@ -62,6 +66,7 @@ addEventListener('message', async (event: MessageEvent<OcrWorkerMessage>) => {
     postMessage({ type: 'done', id: msg.id, matches } satisfies OcrWorkerResponse);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    customLogger.error('[OcrWorker] job_error', { id: msg.id, message });
     postMessage({ type: 'error', id: msg.id, message } satisfies OcrWorkerResponse);
   }
 });
@@ -80,7 +85,8 @@ async function findInImages(
 
   // ── Search each region result ─────────────────────────────────────────────
   for (let i = 0; i < pages.length; i++) {
-    const { pageNum, pdfHeight1x, scaleX, scaleY, offsetPixelX, offsetPixelY } = pages[i];
+    const { pageNum, pdfHeight1x, scaleX, scaleY, offsetPixelX, offsetPixelY, preprocessScale = 1 } = pages[i];
+    const regionOcrStartMs = performance.now();
 
     postMessage({ type: 'progress', id: jobId, page: i + 1, total: pages.length } satisfies OcrWorkerResponse);
 
@@ -90,11 +96,19 @@ async function findInImages(
         await scribe.recognize();
       } catch (err) {
         customLogger.error('[OcrWorker] Scribe recognition failed on region:', err);
+        customLogger.log(
+          `[OcrWorker] page ${pageNum} region ${i + 1}/${pages.length} failed after ${(performance.now() - regionOcrStartMs).toFixed(2)} ms`,
+        );
         continue;
       }
 
     const ocrPage = scribe.data?.ocr?.active?.[0];
-    if (!ocrPage?.lines?.length) continue;
+    if (!ocrPage?.lines?.length) {
+      customLogger.log(
+        `[OcrWorker] page ${pageNum} region ${i + 1}/${pages.length} no lines after ${(performance.now() - regionOcrStartMs).toFixed(2)} ms`,
+      );
+      continue;
+    }
 
     const allWords: Array<{
       text: string;
@@ -115,7 +129,12 @@ async function findInImages(
       }
     }
 
-    if (!allWords.length) continue;
+    if (!allWords.length) {
+      customLogger.log(
+        `[OcrWorker] page ${pageNum} region ${i + 1}/${pages.length} no words after ${(performance.now() - regionOcrStartMs).toFixed(2)} ms`,
+      );
+      continue;
+    }
 
     for (let j = 0; j <= allWords.length - termWords.length; j++) {
       const slice     = allWords.slice(j, j + termWords.length);
@@ -134,12 +153,14 @@ async function findInImages(
       const padY  = bboxH * 0.10;
       const padX  = bboxW * 0.02;
 
-      // Coords are relative to the cropped region — add the region's
-      // pixel offset to get full-page pixel coords before PDF conversion.
-      const x0 = (word.bbox.x0 + (bboxW * matchStart / ratio) - padX) + offsetPixelX;
-      const x1 = (word.bbox.x0 + (bboxW * matchEnd   / ratio) + padX) + offsetPixelX;
-      const y0 = (word.bbox.y0 - padY) + offsetPixelY;
-      const y1 = (word.bbox.y1 + padY) + offsetPixelY;
+      // Bbox coords from Scribe are in preprocessed-image pixel space.
+      // Dividing by preprocessScale converts them back to original OCR-scale (×3) space
+      // before adding the crop offset and feeding into pixelToPdfCoords().
+      // Padding (padX/padY) is also in preprocessed space so must be divided too.
+      const x0 = (word.bbox.x0 + (bboxW * matchStart / ratio) - padX) / preprocessScale + offsetPixelX;
+      const x1 = (word.bbox.x0 + (bboxW * matchEnd   / ratio) + padX) / preprocessScale + offsetPixelX;
+      const y0 = (word.bbox.y0 - padY) / preprocessScale + offsetPixelY;
+      const y1 = (word.bbox.y1 + padY) / preprocessScale + offsetPixelY;
 
       const pdfRect = pixelToPdfCoords({ x0, y0, x1, y1 }, scaleX, scaleY, pdfHeight1x);
 
@@ -162,6 +183,10 @@ async function findInImages(
         checked:    false,
       });
     }
+
+    customLogger.log(
+      `[OcrWorker] page ${pageNum} region ${i + 1}/${pages.length} processed in ${(performance.now() - regionOcrStartMs).toFixed(2)} ms`,
+    );
   }
 
   try { await scribe.clear(); } catch { /* best-effort */ }
