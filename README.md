@@ -25,6 +25,10 @@ every subsequent request. If a stable-named file changes but the SW version
 isn't bumped, users will keep receiving the old cached version instead of 
 fetching the updated one from the network.
 
+// Why updating vercel.json header requires bumping
+- on first load all the static files are cached, including wasm, which comes from the network
+which includes CSP headers and so on. On next load, all will be served from cached
+which uses the same old header. To apply vercel.json changes, a SW bump is required
 
 
 // PRODUCTION
