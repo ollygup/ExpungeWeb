@@ -43,28 +43,28 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   private zone = inject(NgZone);
 
   // ── Signals ──────────────────────────────────────────────────
-  readonly pdfLoaded    = signal(false);
-  readonly isRendering  = signal(false);
-  readonly currentPage  = signal(1);
-  readonly totalPages   = signal(0);
-  readonly zoom         = signal(100);
-  readonly svgRects     = signal<SvgRect[]>([]);
+  readonly pdfLoaded = signal(false);
+  readonly isRendering = signal(false);
+  readonly currentPage = signal(1);
+  readonly totalPages = signal(0);
+  readonly zoom = signal(100);
+  readonly svgRects = signal<SvgRect[]>([]);
 
   // Page dimensions at scale=1 (PDF points) — needed for overlay coord math
-  pageWidth1x  = 0;
+  pageWidth1x = 0;
   pageHeight1x = 0;
 
   // SVG overlay dimensions (CSS pixels, matches canvas.style dimensions)
-  svgWidth  = 0;
+  svgWidth = 0;
   svgHeight = 0;
 
   readonly zoomScale = computed(() => this.zoom() / 100);
 
   // ── Draw state ────────────────────────────────────────────────
   // All in canvas CSS-pixel space (pre-transform, matching SVG overlay coords)
-  private isDragging      = false;
-  private dragStartCss    = { x: 0, y: 0 };
-  private dragCurrentCss  = { x: 0, y: 0 };
+  private isDragging = false;
+  private dragStartCss = { x: 0, y: 0 };
+  private dragCurrentCss = { x: 0, y: 0 };
 
   private subs = new Subscription();
   private renderController: AbortController | null = null;
@@ -152,8 +152,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   }
 
   // ── Zoom ──────────────────────────────────────────────────────
-  zoomIn():  void { this.zoom.update(z => Math.min(250, z + 25)); this.render(); }
-  zoomOut(): void { this.zoom.update(z => Math.max(50,  z - 25)); this.render(); }
+  zoomIn(): void { this.zoom.update(z => Math.min(250, z + 25)); this.render(); }
+  zoomOut(): void { this.zoom.update(z => Math.max(50, z - 25)); this.render(); }
   zoomFit(): void { this.zoom.set(100); this.render(); }
 
   // ── Render ────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     this.isRendering.set(true);
 
     const canvas = this.canvasRef.nativeElement;
-    canvas.width  = 0;
+    canvas.width = 0;
     canvas.height = 0;
 
     try {
@@ -178,11 +178,11 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
       if (pdfJsDoc) {
         const page = await pdfJsDoc.getPage(this.currentPage());
         const vp = page.getViewport({ scale: 1 });
-        this.pageWidth1x  = vp.width;
+        this.pageWidth1x = vp.width;
         this.pageHeight1x = vp.height;
       }
 
-      this.svgWidth  = parseInt(canvas.style.width,  10) || canvas.width;
+      this.svgWidth = parseInt(canvas.style.width, 10) || canvas.width;
       this.svgHeight = parseInt(canvas.style.height, 10) || canvas.height;
 
       this.pdfService.setCurrentPageInfo(this.currentPage(), this.zoomScale());
@@ -197,11 +197,11 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   // ── Overlay ───────────────────────────────────────────────────
   updateSvgRects(): void {
     this.checkPageNavigation();
- 
-    const pageHighlights  = this.highlightService.pageHighlights();
-    const focused         = this.highlightService.focused();
-    const focusedDrawId   = this.drawService.focusedRectId();
- 
+
+    const pageHighlights = this.highlightService.pageHighlights();
+    const focused = this.highlightService.focused();
+    const focusedDrawId = this.drawService.focusedRectId();
+
     // Search / OCR highlights
     const highlightRects: SvgRect[] = pageHighlights
       .filter(h => h.pageNum === this.currentPage())
@@ -209,7 +209,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         h,
         focused?.globalIndex === h.globalIndex && focused?.type === h.type,
       ));
- 
+
     // Committed drawn rects for current page — focused one gets its own type
     const drawnRects: SvgRect[] = this.drawService.drawnRects()
       .filter(r => r.pageNum === this.currentPage())
@@ -217,12 +217,12 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
         r.rect,
         r.id === focusedDrawId ? 'draw-focused' : 'draw',
       ));
- 
+
     // Live drag preview
     const previewRects: SvgRect[] = (this.isDragging && this.drawService.isDrawMode())
       ? [this.buildPreviewRect()]
       : [];
- 
+
     this.svgRects.set([...highlightRects, ...drawnRects, ...previewRects]);
   }
 
@@ -280,13 +280,13 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
    */
   private getCanvasPoint(clientX: number, clientY: number): { x: number; y: number } {
     const canvas = this.canvasRef.nativeElement;
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = canvas.offsetWidth  / rect.width;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.offsetWidth / rect.width;
     const scaleY = canvas.offsetHeight / rect.height;
 
     return {
       x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top)  * scaleY,
+      y: (clientY - rect.top) * scaleY,
     };
   }
 
@@ -305,10 +305,10 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
   /** Returns a normalised PDF-space rect [x0,y0,x1,y1] from two CSS-pixel points. */
   private buildPdfRect(
     start: { x: number; y: number },
-    end:   { x: number; y: number },
+    end: { x: number; y: number },
   ): [number, number, number, number] {
     const [x0, y0] = this.cssToPdf(start.x, start.y);
-    const [x1, y1] = this.cssToPdf(end.x,   end.y);
+    const [x1, y1] = this.cssToPdf(end.x, end.y);
 
     // Normalise so x0 < x1 and y0 < y1 regardless of drag direction
     return [
@@ -324,8 +324,8 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (!this.drawService.isDrawMode() || !this.pageHeight1x) return;
     event.preventDefault();
 
-    this.isDragging   = true;
-    const pt          = this.getCanvasPoint(event.clientX, event.clientY);
+    this.isDragging = true;
+    const pt = this.getCanvasPoint(event.clientX, event.clientY);
     this.dragStartCss = pt;
     this.dragCurrentCss = pt;
     this.updateSvgRects();
@@ -359,9 +359,9 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     event.preventDefault();
 
     const touch = event.touches[0];
-    this.isDragging     = true;
-    const pt            = this.getCanvasPoint(touch.clientX, touch.clientY);
-    this.dragStartCss   = pt;
+    this.isDragging = true;
+    const pt = this.getCanvasPoint(touch.clientX, touch.clientY);
+    this.dragStartCss = pt;
     this.dragCurrentCss = pt;
     this.updateSvgRects();
   }
@@ -370,7 +370,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     if (!this.isDragging || !this.drawService.isDrawMode()) return;
     event.preventDefault();
 
-    const touch         = event.touches[0];
+    const touch = event.touches[0];
     this.dragCurrentCss = this.getCanvasPoint(touch.clientX, touch.clientY);
     this.updateSvgRects();
   }
@@ -400,7 +400,7 @@ export class PdfViewerComponent implements OnInit, OnDestroy {
     }
 
     this.isDragging = false;
-    this.dragStartCss   = { x: 0, y: 0 };
+    this.dragStartCss = { x: 0, y: 0 };
     this.dragCurrentCss = { x: 0, y: 0 };
     this.updateSvgRects();
   }

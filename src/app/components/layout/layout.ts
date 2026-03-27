@@ -30,12 +30,12 @@ type MobileTab = 'document' | 'tools';
 })
 export class LayoutComponent implements OnDestroy {
   // ── Injections ───────────────────────────────────────────────
-  readonly pdfService   = inject(PdfService);
+  readonly pdfService = inject(PdfService);
   readonly themeService = inject(ThemeService);
   readonly dataManagerService = inject(DataManagerService);
 
   // ── Inputs / Outputs ─────────────────────────────────────────
-  readonly tools      = input<ToolEntry[]>([]);
+  readonly tools = input<ToolEntry[]>([]);
   readonly activeTool = input<string>('');
   readonly toolChange = output<string>();
 
@@ -50,24 +50,24 @@ export class LayoutComponent implements OnDestroy {
   readonly activeToolComponent = signal<Type<unknown> | null>(null);
 
   // ── Observables ──────────────────────────────────────────────
-  readonly filename  = this.pdfService.filename$;
+  readonly filename = this.pdfService.filename$;
   readonly pdfLoaded = this.pdfService.pdfLoaded$;
-  readonly isDark    = this.themeService.isDark$;
+  readonly isDark = this.themeService.isDark$;
 
   // ── State ────────────────────────────────────────────────────
-  readonly activeTab      = signal<MobileTab>('document');
+  readonly activeTab = signal<MobileTab>('document');
   readonly isDraggingOver = signal(false);
-  readonly overflowOpen   = signal(false);
+  readonly overflowOpen = signal(false);
 
   // ── Resize ───────────────────────────────────────────────────
-  private isResizing  = false;
+  private isResizing = false;
   private resizeStartX = 0;
-  private startWidth  = 0;
+  private startWidth = 0;
   private readonly hostRef = inject(ElementRef<HTMLElement>);
 
-  private readonly mouseMoveRef    = (e: MouseEvent)  => this.doResize(e);
-  private readonly mouseUpRef      = ()               => this.stopResize();
-  private readonly clickOutsideRef = (e: MouseEvent)  => this.onClickOutside(e);
+  private readonly mouseMoveRef = (e: MouseEvent) => this.doResize(e);
+  private readonly mouseUpRef = () => this.stopResize();
+  private readonly clickOutsideRef = (e: MouseEvent) => this.onClickOutside(e);
 
   constructor() {
     effect(() => {
@@ -75,16 +75,21 @@ export class LayoutComponent implements OnDestroy {
       if (!entry) return;
       entry.component().then(comp => this.activeToolComponent.set(comp));
     });
-  
+
     document.addEventListener('mousemove', this.mouseMoveRef);
-    document.addEventListener('mouseup',   this.mouseUpRef);
-    document.addEventListener('click',     this.clickOutsideRef);
+    document.addEventListener('mouseup', this.mouseUpRef);
+    document.addEventListener('click', this.clickOutsideRef);
+    document.addEventListener('dragover', this.docDragOverRef);
+    document.addEventListener('drop', this.docDropRef);
+
   }
 
   ngOnDestroy(): void {
     document.removeEventListener('mousemove', this.mouseMoveRef);
-    document.removeEventListener('mouseup',   this.mouseUpRef);
-    document.removeEventListener('click',     this.clickOutsideRef);
+    document.removeEventListener('mouseup', this.mouseUpRef);
+    document.removeEventListener('click', this.clickOutsideRef);
+    document.removeEventListener('dragover', this.docDragOverRef);
+    document.removeEventListener('drop', this.docDropRef);
   }
 
   // ── Overflow menu ────────────────────────────────────────────
@@ -120,13 +125,28 @@ export class LayoutComponent implements OnDestroy {
     (event.target as HTMLInputElement).value = '';
   }
 
+
+
+
   // ── Drag & drop ──────────────────────────────────────────────
-  onDragOver(e: DragEvent): void {
+  private readonly docDragOverRef = (e: DragEvent) => e.preventDefault();
+  private readonly docDropRef = (e: DragEvent) => e.preventDefault();
+
+  onDragEnter(e: DragEvent): void {
     e.preventDefault();
     this.isDraggingOver.set(true);
   }
 
-  onDragLeave(): void { this.isDraggingOver.set(false); }
+  onDragOver(e: DragEvent): void { e.preventDefault(); }
+
+  onDragLeave(e: DragEvent): void {
+    // Only hide overlay when cursor leaves the host element entirely,
+    // not when crossing between child elements inside it.
+    const related = e.relatedTarget as Node | null;
+    if (!related || !this.hostRef.nativeElement.contains(related)) {
+      this.isDraggingOver.set(false);
+    }
+  }
 
   async onDrop(e: DragEvent): Promise<void> {
     e.preventDefault();
@@ -137,14 +157,14 @@ export class LayoutComponent implements OnDestroy {
       await this.dataManagerService.refresh();
     }
   }
-  
+
   // ── Panel resize ─────────────────────────────────────────────
   startResize(e: MouseEvent): void {
-    this.isResizing   = true;
+    this.isResizing = true;
     this.resizeStartX = e.clientX;
-    const left        = document.querySelector('.panel-doc') as HTMLElement;
-    this.startWidth   = left?.offsetWidth ?? 0;
-    document.body.style.cursor     = 'col-resize';
+    const left = document.querySelector('.panel-doc') as HTMLElement;
+    this.startWidth = left?.offsetWidth ?? 0;
+    document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }
 
@@ -154,14 +174,14 @@ export class LayoutComponent implements OnDestroy {
     if (!container) return;
     const delta = e.clientX - this.resizeStartX;
     const total = container.offsetWidth;
-    const newW  = Math.min(Math.max(this.startWidth + delta, total * 0.28), total * 0.72);
+    const newW = Math.min(Math.max(this.startWidth + delta, total * 0.28), total * 0.72);
     this.hostRef.nativeElement.style.setProperty('--doc-panel-w', `${(newW / total) * 100}%`);
   }
 
   private stopResize(): void {
     if (!this.isResizing) return;
-    this.isResizing                = false;
-    document.body.style.cursor     = '';
+    this.isResizing = false;
+    document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }
 }
