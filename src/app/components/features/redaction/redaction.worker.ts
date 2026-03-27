@@ -1,21 +1,10 @@
 import type * as MuPDF from 'mupdf';
 import { WorkerMessage, WorkerResponse, RedactionOptions, RedactionResult } from './redaction.types';
 import { customLogger } from '../../../../utils/custom-logger';
+import { loadMupdf } from '../../../services/loaders/mupdf-loader';
 
 let mupdf: typeof MuPDF;
-
-async function loadMupdf(): Promise<void> {
-  const url = new URL('/assets/mupdf/mupdf.js', self.location.href);
-  const mod = await import(/* @vite-ignore */ url.href);
-
-  mupdf = mod.default ?? mod;
-
-  if (typeof mupdf?.Document?.openDocument !== 'function') {
-    customLogger.error('[Worker] Available keys:', Object.keys(mupdf ?? {}));
-    throw new Error('mupdf failed to initialize correctly');
-  }
-}
-const mupdfReady = loadMupdf();
+const mupdfReady = loadMupdf().then(m => { mupdf = m; });
 
 addEventListener('message', async (event: MessageEvent) => {
   const msg = event.data as WorkerMessage;

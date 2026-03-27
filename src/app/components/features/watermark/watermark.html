@@ -1,0 +1,119 @@
+<div class="wm-root">
+
+  @if (!pdfIsLoaded()) {
+    <div class="empty-state">
+      <mat-icon>water_drop</mat-icon>
+      <p>Upload a PDF to begin</p>
+    </div>
+  }
+
+  @if (pdfIsLoaded()) {
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Watermark Text</span>
+        <span class="wm-mono">{{ text() }}</span>
+      </div>
+      <input class="wm-text-input" type="text" [value]="text()"
+             (input)="onTextInput($event)"
+             placeholder="CONFIDENTIAL"
+             autocomplete="off" spellcheck="false" />
+    </div>
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Angle</span>
+        <span class="wm-mono">{{ angleDeg() }}°</span>
+      </div>
+      <mat-slider min="0" max="360" step="1">
+        <input matSliderThumb [value]="angleDeg()" (valueChange)="angleDeg.set($event)" />
+      </mat-slider>
+    </div>
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Density</span>
+        <span class="wm-mono">{{ densityLabel() }}</span>
+      </div>
+      <mat-slider min="1" max="5" step="1">
+        <input matSliderThumb [value]="density()" (valueChange)="density.set($event)" />
+      </mat-slider>
+    </div>
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Opacity</span>
+        <span class="wm-mono">{{ (opacity() * 100).toFixed(0) }}%</span>
+      </div>
+      <mat-slider min="0.05" max="0.5" step="0.01">
+        <input matSliderThumb [value]="opacity()" (valueChange)="opacity.set($event)" />
+      </mat-slider>
+    </div>
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Font Size</span>
+        <span class="wm-mono">{{ fontSize() }}pt</span>
+      </div>
+      <mat-slider min="16" max="72" step="2">
+        <input matSliderThumb [value]="fontSize()" (valueChange)="fontSize.set($event)" />
+      </mat-slider>
+    </div>
+
+    <div class="wm-field">
+      <div class="wm-row-label">
+        <span>Color</span>
+        <span class="wm-mono">{{ colorHex() }}</span>
+      </div>
+      <div class="wm-color-row">
+        <label class="wm-color-swatch" [style.background]="colorHex()">
+          <input type="color" [value]="colorHex()" (input)="onColorInput($event)" />
+        </label>
+        <input class="wm-text-input wm-text-input--hex" type="text"
+               [value]="colorHex()"
+               (input)="onHexTextInput($event)"
+               maxlength="7"
+               spellcheck="false"
+               autocomplete="off" />
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="banner banner--error">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    @if (applied()) {
+      <div class="banner banner--success">
+        <mat-icon>check_circle_outline</mat-icon>
+        <span>Watermark applied successfully.</span>
+      </div>
+    }
+
+    <div class="wm-actions">
+      <button class="wm-apply-btn" type="button"
+              [disabled]="applying()" (click)="applyWatermark()">
+        @if (applying()) {
+          <mat-icon class="spin-icon">autorenew</mat-icon>
+        } @else {
+          <mat-icon>water_drop</mat-icon>
+        }
+        {{ applying() ? 'Applying…' : 'Apply Watermark' }}
+      </button>
+
+      @if (applied()) {
+        <div class="download-row">
+          <button class="download-btn" type="button" (click)="downloadWatermarked()">
+            <mat-icon>download</mat-icon>
+            Download Watermarked PDF
+          </button>
+          <span class="filename-hint">watermarked.pdf</span>
+        </div>
+      }
+    </div>
+
+  }
+
+</div>

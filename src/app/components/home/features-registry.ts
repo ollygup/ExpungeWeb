@@ -25,17 +25,16 @@ export const FEATURES_REGISTRY: ToolEntry[] = [
       import('../data-manager/data-manager').then(m => m.DataManagerComponent),
   },
   {
-    id: 'text-editor',
-    label: 'Text editing',
-    icon: 'edit',
-    component: () =>
-      import('../features/redaction/redaction').then(m => m.RedactionComponent),
-    comingSoon: true,
-  },
-  {
     id: 'watermark',
     label: 'Watermark',
     icon: 'watermark',
+    component: () =>
+      import('../features/watermark/watermark').then(m => m.WatermarkComponent),
+  },
+  {
+    id: 'text-editor',
+    label: 'Text editing',
+    icon: 'edit',
     component: () =>
       import('../features/redaction/redaction').then(m => m.RedactionComponent),
     comingSoon: true,
