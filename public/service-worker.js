@@ -1,7 +1,7 @@
   'use strict';
 
   // ── VERSION ──────────────────────────────────────────────────
-  const VERSION    = '1.0.19';
+  const VERSION    = '1.1.9';
   const CACHE_NAME = `expunge-v${VERSION}`;
 
   // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -13,9 +13,21 @@
     '/assets/mupdf/mupdf.js',
     '/assets/mupdf/mupdf-wasm.js',
     '/assets/mupdf/mupdf-wasm.wasm',
-    '/assets/opencv/opencv.js',
-  ];
+    // '/assets/opencv/opencv.js',
+    '/assets/ort/ort-wasm-simd-threaded.wasm',
+    '/assets/ort/ort-wasm-simd-threaded.jsep.wasm',
+    '/assets/ort/ort-wasm-simd-threaded.jspi.wasm',
+    '/assets/ort/ort-wasm-simd-threaded.asyncify.wasm',
 
+    '/assets/ort/ort-wasm-simd-threaded.mjs',
+    '/assets/ort/ort-wasm-simd-threaded.jsep.mjs',
+    '/assets/ort/ort-wasm-simd-threaded.jspi.mjs',
+    '/assets/ort/ort-wasm-simd-threaded.asyncify.mjs',
+
+  
+    '/assets/paddle/det.onnx',
+    '/assets/paddle/rec.onnx',
+  ];
   // ── Install ──────────────────────────────────────────────────
   self.addEventListener('install', (event) => {
     event.waitUntil(

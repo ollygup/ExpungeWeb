@@ -61,11 +61,12 @@
           }
         </div>
 
-        <button class="ocr-toggle" type="button" [class.ocr-toggle--on]="ocrEnabled()"
+        <!-- ALWAYS ENABLE OCR INSTEAD -->
+        <!-- <button class="ocr-toggle" type="button" [class.ocr-toggle--on]="ocrEnabled()"
           (click)="ocrEnabled.set(!ocrEnabled())">
           <mat-icon>image_search</mat-icon>
           <span>OCR</span>
-        </button>
+        </button> -->
 
         <button class="search-btn" type="button" (click)="onSearch()"
           [disabled]="!searchInput.trim() || isSearching() || isOcrSearching() || isRedacting()">
@@ -98,7 +99,7 @@
           <div class="action-bar__status">
             <mat-icon class="spin-icon">{{ isOcrSearching() ? 'image_search' : 'search' }}</mat-icon>
             @if (isOcrSearching() && ocrProgress(); as p) {
-              <span>Scanning region {{ p.page }} of {{ p.total }}</span>
+              <span>Scanning Image Regions: {{ p.page }} of {{ p.total }}</span>
             } @else {
               <span>Searching…</span>
             }

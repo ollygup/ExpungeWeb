@@ -34,3 +34,29 @@ which uses the same old header. To apply vercel.json changes, a SW bump is requi
 // PRODUCTION
 add NG_APP_ENV to your env, value = production
 
+
+
+
+
+// SCRIPT TO CONVERT PADDLEPADDLE into ONNX
+# Cell 1 — Install
+!pip install paddlepaddle paddlex -q
+
+# Cell 2 — Download PP-OCRv5 mobile models (paddle3.0 format)
+!wget -q https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_det_infer.tar
+!tar xf PP-OCRv5_mobile_det_infer.tar
+
+!wget -q https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-OCRv5_mobile_rec_infer.tar
+!tar xf PP-OCRv5_mobile_rec_infer.tar
+
+# Cell 3 — Install paddle2onnx plugin via PaddleX, then convert
+!paddlex --install paddle2onnx
+
+!paddlex --paddle2onnx --paddle_model_dir ./PP-OCRv5_mobile_det_infer --onnx_model_dir ./det_onnx
+!paddlex --paddle2onnx --paddle_model_dir ./PP-OCRv5_mobile_rec_infer --onnx_model_dir ./rec_onnx
+
+# Cell 4 — Verify outputs
+import os
+print("det:", os.listdir("./det_onnx"))
+print("rec:", os.listdir("./rec_onnx"))
+

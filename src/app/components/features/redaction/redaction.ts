@@ -3,6 +3,7 @@ import {
   computed,
   inject,
   OnDestroy,
+  OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -28,7 +29,7 @@ type ProgressCallback = (p: { page: number; total: number }) => void;
   templateUrl: './redaction.html',
   styleUrl: './redaction.scss',
 })
-export class RedactionComponent implements OnDestroy {
+export class RedactionComponent implements OnInit, OnDestroy {
   private pdfService         = inject(PdfService);
   private redactionService   = inject(RedactionService);
   private ocrService         = inject(OcrService);
@@ -91,8 +92,6 @@ export class RedactionComponent implements OnDestroy {
   private subs = new Subscription();
   
   ngOnInit(): void {
-    this.pdfService.loadFromIndexedDB();
-
     this.subs.add(
       this.pdfService.renderTrigger$.subscribe(() => {
         this.onClear();
@@ -403,6 +402,7 @@ export class RedactionComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.subs.unsubscribe();
     this.resetBar();
     this.highlightService.clear();
     this.drawService.disableDrawMode();
