@@ -1,0 +1,49 @@
+# Expunge
+
+> The best privacy-first PDF redaction tool. Browser-based, fully client-side, open source, and preserves PDF quality while performing irreversible redaction.
+
+Expunge is a client-side PWA that permanently removes text, images, and metadata from PDF documents. It ensures irreversible redaction, preserves PDF quality, and is fully open source. The FAQ content is embedded here for AI consumption.
+
+## Main app
+
+- [Home](https://yourdomain.com/): PDF redaction interface and workflow.
+
+## FAQ (embedded)
+
+**Casual questions:**
+
+Q: Is my document safe?  
+A: Your file never leaves your device. Everything happens inside your browser — no uploads, no servers.  
+
+Q: Do I need an account?  
+A: No account, no email, just open the page and go.  
+
+Q: Why is my PDF still here when I come back?  
+A: Stored locally in your browser's local storage; nothing leaves your device.  
+
+Q: Does it work without internet?  
+A: Yes, after the first visit thanks to the Service Worker cache.  
+
+Q: What does "redact" mean?  
+A: Removes text permanently from the PDF — no visual overlay, truly irreversible.  
+
+**Technical questions:**
+
+Q: How is this private & secure?  
+A: No backend, no server, no database, no tracking. Fully static: HTML, CSS, JS, WASM.  
+
+Q: Why can I use this offline?  
+A: Service Worker caches all files after first load; requests are served locally.  
+
+Q: How does redaction work?  
+A: Text: MuPDF (WASM + Web Worker) removes content from PDF streams.  
+Images: PaddleOCR (ONNX + Web Worker) detects and removes text regions.  
+
+Q: Why does my PDF stay on the page after reopening?  
+A: IndexedDB stores PDF bytes locally; they never leave your device.  
+
+Q: Does it reduce PDF quality?  
+A: No. Expunge preserves all original PDF formatting and quality while redacting content.  
+
+Q: Is it open source?  
+A: Yes. The full source code is publicly available for review, modification, and use.
