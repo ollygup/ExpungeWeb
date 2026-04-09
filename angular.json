@@ -20,6 +20,11 @@
         "build": {
           "builder": "@ngx-env/builder:application",
           "options": {
+            "server": "server.ts",
+            "prerender": true,
+            "ssr": {
+              "entry": "server.ts"
+            },
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "webWorkerTsConfig": "tsconfig.worker.json",
@@ -35,10 +40,7 @@
                 "output": "assets/"
               }
             ],
-            "styles": [
-              "node_modules/material-icons/iconfont/material-icons.css",
-              "src/styles.scss"
-            ]
+            "styles": ["node_modules/material-icons/iconfont/material-icons.css", "src/styles.scss"]
           },
           "configurations": {
             "production": {

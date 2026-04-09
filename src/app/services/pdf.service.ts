@@ -1,22 +1,22 @@
-import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Subject } from 'rxjs';
 
-import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
+import type { PDFDocumentProxy, PDFPageProxy, RenderTask, TextItem } from 'pdfjs-dist/types/src/display/api';
 
 import { IndexedDbService } from './indexed-db.service';
-import { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { customLogger } from '../../utils/custom-logger';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = window.location.origin + '/assets/pdf.worker.min.mjs';
 
 @Injectable({ providedIn: 'root' })
 export class PdfService {
 
   private idb = inject(IndexedDbService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
 
-  // ── Signals ────────────────────────────────────────────────────────────────
+  private pdfjsLib: typeof import('pdfjs-dist') | null = null;
+
   readonly currentBytes = signal<Uint8Array | null>(null);
   readonly filename = signal<string>('');
   readonly totalPagesSignal = signal<number>(0);
@@ -24,7 +24,6 @@ export class PdfService {
 
   readonly pdfLoaded$ = toObservable(this.isLoaded);
   readonly filename$ = toObservable(this.filename);
-
   readonly renderTrigger$ = new Subject<void>();
 
   get totalPages(): number { return this.totalPagesSignal(); }
@@ -43,18 +42,26 @@ export class PdfService {
 
   constructor() { }
 
-  // ── Load ───────────────────────────────────────────────────────────────────
-  async loadFromIndexedDB(): Promise<boolean> {
-    const stored = await this.idb.load();
-    if (!stored) {
-      return false;
+  private async getPdfJs(): Promise<typeof import('pdfjs-dist')> {
+    if (!this.pdfjsLib) {
+      this.pdfjsLib = await import('pdfjs-dist');
+      this.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        window.location.origin + '/assets/pdfjs/pdf.worker.min.mjs';
     }
+    return this.pdfjsLib;
+  }
+
+  async loadFromIndexedDB(): Promise<boolean> {
+    if (!this.isBrowser) return false;
+    const stored = await this.idb.load();
+    if (!stored) return false;
     customLogger.log(`[PdfService] loadFromIndexedDB: found "${stored.filename}", initDocument...`);
     await this.initDocument(stored.currentBytes, stored.filename);
     return true;
   }
 
   async loadFromFile(file: File): Promise<void> {
+    if (!this.isBrowser) return;
     const bytes = new Uint8Array(await file.arrayBuffer());
     await this.idb.saveDocument(file.name, bytes);
     await this.initDocument(bytes, file.name);
@@ -62,6 +69,7 @@ export class PdfService {
   }
 
   async revertToOriginal(): Promise<void> {
+    if (!this.isBrowser) return;
     const stored = await this.idb.load();
     if (!stored) return;
     await this.idb.updateCurrentBytes(stored.originalBytes);
@@ -69,9 +77,8 @@ export class PdfService {
     this.renderTrigger$.next();
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   async renderPage(pageNum: number, canvas: HTMLCanvasElement, zoomScale = 1): Promise<void> {
-    if (!this.pdfJsDoc) return;
+    if (!this.pdfJsDoc || !this.isBrowser) return;
 
     const dpr = Math.max(window.devicePixelRatio || 1, 2);
     const page = await this.pdfJsDoc.getPage(pageNum);
@@ -89,18 +96,19 @@ export class PdfService {
     await renderTask.promise;
   }
 
-  // ── commitBytes ────────────────────────────────────────────────────────────
   async commitBytes(newBytes: Uint8Array): Promise<void> {
+    if (!this.isBrowser) return;
     customLogger.log(`[PdfService] commitBytes: ${newBytes.byteLength} bytes`);
     await this.idb.updateCurrentBytes(newBytes);
     await this.initDocument(newBytes, this.filename());
     this.renderTrigger$.next();
   }
 
-  // ── Internal ───────────────────────────────────────────────────────────────
   async initDocument(bytes: Uint8Array, name: string): Promise<void> {
+    if (!this.isBrowser) return;
+    const pdfjs = await this.getPdfJs();
     const copy = bytes.slice();
-    this.pdfJsDoc = await pdfjsLib.getDocument({ data: copy }).promise;
+    this.pdfJsDoc = await pdfjs.getDocument({ data: copy }).promise;
     this.filename.set(name);
     this.totalPagesSignal.set(this.pdfJsDoc.numPages);
     this.currentBytes.set(bytes);
@@ -123,14 +131,6 @@ export class PdfService {
     return content.items.map((item: any) => item.str ?? '').join(' ');
   }
 
-  /**
-   * Returns PDF-space bounding rects for all text items on a page that
-   * contain the search term. Used by the highlight overlay in the PDF viewer.
-   *
-   * PDF.js text items carry a `transform` array [a, b, c, d, x, y] where
-   * x/y is the glyph origin in PDF coordinate space (bottom-left origin).
-   * `width` and `height` give the item dimensions in the same space.
-   */
   async getPageTextMatchRects(
     pageNum: number,
     term: string,
@@ -149,21 +149,18 @@ export class PdfService {
 
       const [, , , , x, y] = ti.transform;
       const w = ti.width ?? 0;
-      const h = ti.height ?? 10; // fallback if height not provided
+      const h = ti.height ?? 10;
 
       if (w <= 0) continue;
 
-      // PDF space: origin bottom-left, y increases upward.
-      // The glyph origin (x, y) is at the text baseline.
-      // We expand slightly above/below baseline for a visible highlight box.
       rects.push([x, y - h * 0.15, x + w, y + h * 0.85]);
     }
 
     return rects;
   }
 
-  // ── Download ───────────────────────────────────────────────────────────────
   downloadCurrent(): void {
+    if (!this.isBrowser) return;
     const bytes = this.currentBytes();
     if (!bytes) return;
     const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' });
@@ -175,7 +172,6 @@ export class PdfService {
     URL.revokeObjectURL(url);
   }
 
-  // ── Clear ───────────────────────────────────────────────────────────────
   clear(): void {
     customLogger.log('[PdfService] clear: wiping all state, firing renderTrigger$');
     this.pdfJsDoc = null;

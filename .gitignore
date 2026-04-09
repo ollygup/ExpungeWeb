@@ -1,9 +1,13 @@
+# Local ENV
+.env
+
 # Exclude python stuffs
 .venv/
 
 # Remove WASM from git commits
 public/assets/mupdf
 public/assets/ort
+public/assets/pdfjs
 
 # Logs
 logs
