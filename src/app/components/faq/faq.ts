@@ -1,6 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { HeaderComponent } from '../../shared/header/header';
 import { RouterLink } from '@angular/router';
+import type { Tab, FaqItem } from './faq.types';
 
 @Component({
   selector: 'app-faq',

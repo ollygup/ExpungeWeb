@@ -551,6 +551,15 @@
     color: var(--text-secondary);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
+
+    h2 {
+      margin: 0;
+      font-size: inherit;
+      font-weight: inherit;
+      color: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+    }
   }
 
   &__body {

@@ -16,7 +16,7 @@
       <span class="brand-mark">
         <img src="favicon.svg" alt="Expunge" width="20" height="20" />
       </span>
-      <span class="brand-text">Expunge</span>
+      <h1 class="brand-text">Expunge</h1>
     </div>
 
     @if (pdfLoaded | async) {
@@ -123,7 +123,7 @@
 
       <div class="feature-panel">
         <header class="feature-panel__header">
-          <span>{{ activeToolEntry()?.label }}</span>
+          <h2>{{ activeToolEntry()?.label }}</h2>
         </header>
         <div class="feature-panel__body">
           @if (activeToolEntry()?.comingSoon) {
