@@ -35,19 +35,19 @@ async function ensureModels(): Promise<void> {
 
     detSession = await ort.InferenceSession.create(detBuf, { executionProviders: ['wasm'] });
     recSession = await ort.InferenceSession.create(recBuf, { executionProviders: ['wasm'] });
-  
+
     // normalize text first
     const cleanedDictText = dictText
       .replace(/^\uFEFF/, '') // remove Byte Order Mark if present
       .replace(/\r/g, '');    // normalize line endings
-    
+
     // split into lines
     const dictLines = cleanedDictText
       .split('\n')
       .filter(line => line !== '');
-    
+
     // build char list
-    charList = ['blank', ...dictLines];
+    charList = ['blank', ...dictLines, ' '];
   })();
 
   return modelsReady;
@@ -102,12 +102,21 @@ async function findInImages(
         const recOut = await recSession!.run({ [recSession!.inputNames[0]]: recTensor });
         const { text, conf } = ctcDecode(recOut[recSession!.outputNames[0]]);
         customLogger.log(`[OcrWorker] rec: "${text}" conf=${conf.toFixed(2)}`);
-        if (!text || !text.toLowerCase().includes(termLower)) continue;
+
+        const termIdx = text.toLowerCase().indexOf(termLower);
+        if (!text || termIdx === -1) continue;
 
         const [bx0, by0, bx1, by1] = box;
-        const px0 = bx0 * detScaleX + offsetPixelX;
+
+        // proportional sub-rect based on character position
+        const ratio0 = termIdx / text.length;
+        const ratio1 = (termIdx + searchTerm.length) / text.length;
+        const subX0 = bx0 + ratio0 * (bx1 - bx0);
+        const subX1 = bx0 + ratio1 * (bx1 - bx0);
+
+        const px0 = subX0 * detScaleX + offsetPixelX;
         const py0 = by0 * detScaleY + offsetPixelY;
-        const px1 = bx1 * detScaleX + offsetPixelX;
+        const px1 = subX1 * detScaleX + offsetPixelX;
         const py1 = by1 * detScaleY + offsetPixelY;
 
         const pdfRect = pixelToPdf({ x0: px0, y0: py0, x1: px1, y1: py1 }, scaleX, scaleY, pdfHeight1x);
@@ -243,35 +252,16 @@ let _recDimsLogged = false;
 
 function ctcDecode(tensor: ort.Tensor): { text: string; conf: number } {
   const dims = tensor.dims as number[];
+  let seqLen: number, numClasses: number;
 
-  let seqLen: number;
-  let numClasses: number;
-
-  if (dims.length === 3) {
-    seqLen = dims[0] === 1 ? dims[1] : dims[0];
-    numClasses = dims[2];
-  } else if (dims.length === 2) {
-    seqLen = dims[0];
-    numClasses = dims[1];
-  } else {
-    customLogger.warn('[OcrWorker] ctcDecode: unexpected dims', dims);
-    return { text: '', conf: 0 };
-  }
+  if (dims.length === 3) { seqLen = dims[0] === 1 ? dims[1] : dims[0]; numClasses = dims[2]; }
+  else if (dims.length === 2) { seqLen = dims[0]; numClasses = dims[1]; }
+  else { customLogger.warn('[OcrWorker] ctcDecode: unexpected dims', dims); return { text: '', conf: 0 }; }
 
   const data = tensor.data as Float32Array;
+  const SPACE_GAP = Math.max(2, Math.round(seqLen * 0.12));
 
-  if (!_recDimsLogged) {
-    const top3 = [...Array(3)].map((_, i) => {
-      let maxIdx = 0, maxVal = -Infinity;
-      for (let c = 0; c < numClasses; c++) {
-        if (data[i * numClasses + c] > maxVal) { maxVal = data[i * numClasses + c]; maxIdx = c; }
-      }
-      return { t: i, maxIdx, char: charList[maxIdx] };
-    });
-    // customLogger.log('[OcrWorker] first 3 decoded steps:', JSON.stringify(top3));
-  }
-
-  let text = '', sumConf = 0, cnt = 0, last = -1;
+  let text = '', sumConf = 0, cnt = 0, last = -1, blankRun = 0;
 
   for (let t = 0; t < seqLen; t++) {
     const off = t * numClasses;
@@ -279,15 +269,20 @@ function ctcDecode(tensor: ort.Tensor): { text: string; conf: number } {
     for (let c = 0; c < numClasses; c++) {
       if (data[off + c] > maxVal) { maxVal = data[off + c]; maxIdx = c; }
     }
-    if (maxIdx !== last && maxIdx !== 0) {
-      text += charList[maxIdx] ?? '';
-      sumConf += maxVal; cnt++;
+
+    if (maxIdx === 0) {
+      blankRun++;
+    } else {
+      if (blankRun >= SPACE_GAP && text.length > 0 && !text.endsWith(' ')) text += ' ';
+      blankRun = 0;
+      if (maxIdx !== last) { text += charList[maxIdx] ?? ''; sumConf += maxVal; cnt++; }
     }
     last = maxIdx;
   }
 
-  return { text, conf: cnt > 0 ? sumConf / cnt : 0 };
+  return { text: text.trim(), conf: cnt > 0 ? sumConf / cnt : 0 };
 }
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 async function blobToImageData(blob: Blob): Promise<ImageData> {
   const bmp = await createImageBitmap(blob);
