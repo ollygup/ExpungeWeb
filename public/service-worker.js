@@ -1,7 +1,7 @@
   'use strict';
 
   // ── VERSION ──────────────────────────────────────────────────
-  const VERSION    = '1.1.9';
+  const VERSION    = '1.1.10';
   const CACHE_NAME = `expunge-v${VERSION}`;
 
   // ── PRECACHE ASSETS  ──────────────────────────────────────────
@@ -13,7 +13,7 @@
     '/assets/mupdf/mupdf.js',
     '/assets/mupdf/mupdf-wasm.js',
     '/assets/mupdf/mupdf-wasm.wasm',
-    // '/assets/opencv/opencv.js',
+
     '/assets/ort/ort-wasm-simd-threaded.wasm',
     '/assets/ort/ort-wasm-simd-threaded.jsep.wasm',
     '/assets/ort/ort-wasm-simd-threaded.jspi.wasm',

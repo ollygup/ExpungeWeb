@@ -1,0 +1,120 @@
+<main class="landing">
+
+    <header class="nav">
+        <span class="nav__logo">Expunge</span>
+
+        <button class="nav__burger" [class.nav__burger--open]="menuOpen" (click)="menuOpen = !menuOpen"
+            aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+        </button>
+
+        <nav class="nav__right" [class.nav__right--open]="menuOpen">
+            <a class="nav__right__cta" href="https://github.com/ollygup/ExpungeWeb" target="_blank" rel="noopener">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12 .5C5.65.5.5 5.66.5 12.03c0 5.1 3.29 9.42 7.86 10.95.58.1.79-.25.79-.56v-2.02c-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.2 1.76 1.2 1.02 1.76 2.67 1.25 3.32.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.3 1.2-3.12-.12-.3-.52-1.5.12-3.12 0 0 .98-.32 3.2 1.2a11.1 11.1 0 0 1 5.84 0c2.22-1.52 3.2-1.2 3.2-1.2.64 1.62.24 2.82.12 3.12.75.82 1.2 1.86 1.2 3.12 0 4.43-2.69 5.4-5.25 5.68.41.36.77 1.07.77 2.16v3.2c0 .31.21.66.8.55A11.54 11.54 0 0 0 23.5 12C23.5 5.66 18.35.5 12 .5z" />
+                </svg>
+                GitHub
+            </a>
+            <a class="nav__right__cta nav__right__cta--primary" routerLink="/workspace">Open App</a>
+        </nav>
+    </header>
+
+
+    <section class="hero">
+        <div class="hero__eyebrow">PDF Redaction</div>
+        <h1 class="hero__title">
+            True PDF redaction<br>
+            <span class="hero__title--dim">Done securely</span>
+        </h1>
+        <p class="hero__sub">
+            A true redaction platform made with security in mind. <br>
+            Remove sensitive content completely, keep everything private, and ensure nothing leaves your device.
+        </p>
+        <a class="hero__btn" routerLink="/workspace">
+            <span>Start redacting</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </a>
+    </section>
+
+    <section class="capabilities">
+        <ul class="cap-grid">
+            <li class="cap-item">
+                <div class="cap-item__icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" />
+                        <path d="M9 9h6M9 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        <rect x="8" y="11" width="8" height="4" rx="1" fill="currentColor" opacity="0.3" />
+                    </svg>
+                </div>
+                <h3>Text redaction</h3>
+                <p>Search and remove exact phrases across the entire document.</p>
+            </li>
+            <li class="cap-item">
+                <div class="cap-item__icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <h3>OCR redaction</h3>
+                <p>Detect and redact text in scanned documents and image-based PDFs.</p>
+            </li>
+            <li class="cap-item">
+                <div class="cap-item__icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <h3>Draw to redact</h3>
+                <p>Freehand select any region on the page to redact it permanently.</p>
+            </li>
+            <li class="cap-item">
+                <div class="cap-item__icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <h3>Watermarking</h3>
+                <p>Embed tamper-resistant watermarks directly into the content stream.</p>
+            </li>
+        </ul>
+    </section>
+
+    <section class="privacy">
+        <div class="privacy__inner">
+            <div class="privacy__inner__content">
+                <p class="privacy__inner__struck">We protect your data.</p>
+                <p class="privacy__inner__key">There is no 'We'.<br><span class="privacy__inner__sub">Your data stays
+                        yours — fully offline, always.</span></p>
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-cta">
+        <div class="faq-cta__inner">
+            <span class="faq-cta__label">Have questions?</span>
+            <a class="faq-cta__link" routerLink="/faq">
+                Read the FAQ
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <span>Expunge</span>
+        <span class="footer__sep">·</span>
+        <span>AGPL v3.0</span>
+        <span class="footer__sep">·</span>
+        <a routerLink="/faq">FAQ</a>
+    </footer>
+</main>

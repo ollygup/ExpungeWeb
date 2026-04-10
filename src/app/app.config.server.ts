@@ -3,8 +3,9 @@ import { provideServerRendering, withRoutes, RenderMode, ServerRoute } from '@an
 import { appConfig } from './app.config';
 
 const serverRoutes: ServerRoute[] = [
-  { path: '',    renderMode: RenderMode.Client },
+  { path: '',    renderMode: RenderMode.Prerender },
   { path: 'faq', renderMode: RenderMode.Prerender },
+  { path: 'workspace', renderMode: RenderMode.Client },
   { path: '**', renderMode: RenderMode.Client }
 ];
 
