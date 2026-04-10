@@ -10,14 +10,13 @@
   --border-default: rgba(255, 255, 255, 0.10);
   --border-strong:  rgba(255, 255, 255, 0.18);
 
-  /* Contrast improved: secondary lifted from #8b90a8 → #a0a6c0 (AA pass) */
   --text-primary:   #eef0f8;
   --text-secondary: #a0a6c0;
   --text-tertiary:  #5e6480;
   --text-inverse:   #080a10;
 
   --accent:     #7c6cf4;
-  --accent-2:   #a89ef8;   /* lifted for better contrast on dim backgrounds */
+  --accent-2:   #a89ef8;
   --accent-dim: rgba(124, 108, 244, 0.16);
   --accent-glow: rgba(124, 108, 244, 0.08);
 
@@ -48,18 +47,16 @@
   --border-default: rgba(0, 0, 0, 0.10);
   --border-strong:  rgba(0, 0, 0, 0.18);
 
-  /* Contrast improved: secondary darkened from #5a5f80 → #454970 (AA pass) */
   --text-primary:   #12142a;
   --text-secondary: #454970;
   --text-tertiary:  #8286a8;
   --text-inverse:   #ffffff;
 
   --accent:      #5b4de0;
-  --accent-2:    #4538c0;  /* darker for contrast on light bg */
+  --accent-2:    #4538c0;
   --accent-dim:  rgba(91, 77, 224, 0.10);
   --accent-glow: rgba(91, 77, 224, 0.06);
 
-  /* Mark highlight — solid bg so text is always readable */
   --mark-bg:    #5b4de0;
   --mark-text:  #ffffff;
 
