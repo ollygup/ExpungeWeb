@@ -130,6 +130,9 @@
   /* ── Footer ──────────────────────────────────────────────────── */
   .faq-footer {
     margin-top: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
   
   .back-btn {
