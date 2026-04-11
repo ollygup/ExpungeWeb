@@ -1,7 +1,7 @@
   'use strict';
 
   // ── VERSION ──────────────────────────────────────────────────
-  const VERSION    = '1.1.12';
+  const VERSION    = '1.1.13';
   const CACHE_NAME = `expunge-v${VERSION}`;
 
   // ── PRECACHE ASSETS  ──────────────────────────────────────────

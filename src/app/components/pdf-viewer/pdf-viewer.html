@@ -1,7 +1,7 @@
 <!-- pdf-viewer.component.html -->
 <div class="viewer-root">
 
-  <!-- ── Empty / Upload State ───────────────────────────────── -->
+  <!-- ── Empty State ─────────────────────────────────────────────────────── -->
   @if (!pdfLoaded()) {
     <div class="viewer-empty">
       <div class="empty-icon-wrap">
@@ -16,29 +16,26 @@
     </div>
   }
 
-  <!-- ── PDF Canvas View ────────────────────────────────────── -->
+  <!-- ── PDF Canvas View ─────────────────────────────────────────────────── -->
   @if (pdfLoaded()) {
     <div class="viewer-body">
 
       <!-- Toolbar -->
       <div class="viewer-toolbar">
+
+        <!-- Page navigation -->
         <div class="toolbar-group">
           <button class="tool-btn" matTooltip="Previous page"
                   [disabled]="currentPage() <= 1" (click)="prevPage()">
             <mat-icon>chevron_left</mat-icon>
           </button>
-
           <span class="page-info">
-            <input class="page-input"
-                   type="number"
-                   [value]="currentPage()"
-                   [min]="1"
-                   [max]="totalPages()"
+            <input class="page-input" type="number"
+                   [value]="currentPage()" [min]="1" [max]="totalPages()"
                    (change)="goToPage(+$any($event.target).value)">
             <span class="page-sep">/</span>
             <span class="page-total">{{ totalPages() }}</span>
           </span>
-
           <button class="tool-btn" matTooltip="Next page"
                   [disabled]="currentPage() >= totalPages()" (click)="nextPage()">
             <mat-icon>chevron_right</mat-icon>
@@ -47,6 +44,7 @@
 
         <div class="toolbar-divider"></div>
 
+        <!-- Zoom -->
         <div class="toolbar-group">
           <button class="tool-btn" matTooltip="Zoom out" (click)="zoomOut()">
             <mat-icon>zoom_out</mat-icon>
@@ -60,13 +58,34 @@
           </button>
         </div>
 
-        <!-- Draw mode indicator — only visible when active -->
-        @if (drawService.isDrawMode()) {
-          <div class="draw-mode-badge" matTooltip="Draw mode active — drag on PDF to mark regions">
+        <div class="toolbar-divider"></div>
+
+        <!-- Draw mode toggle + sub-mode selector -->
+        <div class="toolbar-group toolbar-group--draw">
+          <button class="tool-btn tool-btn--draw"
+                  [class.tool-btn--draw-active]="drawService.isDrawMode()"
+                  [matTooltip]="drawService.isDrawMode() ? 'Disable drawing' : 'Enable drawing'"
+                  (click)="drawService.toggleDrawMode()">
             <mat-icon>draw</mat-icon>
-            <span>Drawing</span>
-          </div>
-        }
+          </button>
+
+          @if (drawService.isDrawMode()) {
+            <div class="draw-submode">
+              <button class="submode-btn"
+                      [class.submode-btn--active]="drawService.subMode() === 'single'"
+                      matTooltip="Single: draw one region, choose action"
+                      (click)="drawService.setSubMode('single')">
+                <mat-icon>filter_1</mat-icon>
+              </button>
+              <button class="submode-btn"
+                      [class.submode-btn--active]="drawService.subMode() === 'multi'"
+                      matTooltip="Multi: draw multiple redact regions"
+                      (click)="drawService.setSubMode('multi')">
+                <mat-icon>filter_none</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
 
         @if (isRendering()) {
           <div class="render-indicator">
@@ -79,6 +98,7 @@
       <div class="canvas-scroll" #scrollArea>
         <div class="canvas-wrap"
              [class.canvas-wrap--draw]="drawService.isDrawMode()"
+             [class.canvas-wrap--multi]="drawService.isDrawMode() && drawService.subMode() === 'multi'"
              [style.transform]="'scale(' + zoomScale() + ')'"
              [style.transform-origin]="'top center'"
              (mousedown)="onMouseDown($event)"
@@ -89,20 +109,13 @@
              (touchmove)="onTouchMove($event)"
              (touchend)="onTouchEnd($event)">
 
-          <!-- PDF render canvas -->
           <canvas #pdfCanvas class="pdf-canvas"></canvas>
 
-          <!-- ── Highlight + draw overlay ───────────────────────────────────
-               SVG is positioned absolutely over the canvas.
-               Coordinates are in CSS pixels matching canvas.style dimensions.
-               canvas-wrap's CSS transform scales both together automatically.
-          ──────────────────────────────────────────────────────────────────── -->
           @if (svgRects().length > 0) {
             <svg class="highlight-overlay"
                  [attr.width]="svgWidth"
                  [attr.height]="svgHeight"
                  [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight">
-
               @for (rect of svgRects(); track trackByIndex($index)) {
                 <rect
                   [attr.x]="rect.x"
@@ -112,7 +125,6 @@
                   [class]="'hl-rect hl-rect--' + rect.type + (rect.focused ? ' hl-rect--focused' : '')"
                 />
               }
-
             </svg>
           }
 
@@ -120,6 +132,49 @@
       </div>
 
     </div>
+
+    <!-- ── Draw Action Popup (single mode only) ───────────────────────────────
+         Rendered OUTSIDE canvas-wrap so it is unaffected by the CSS scale.
+         Position:fixed anchored to viewport coords via cssToScreen().
+    ──────────────────────────────────────────────────────────────────────── -->
+    @if (drawService.pendingId() && drawService.popupPos()) {
+      <div class="draw-popup-backdrop" (click)="onPopupDismiss()"></div>
+
+      <div class="draw-popup"
+           [style.left.px]="drawService.popupPos()!.x"
+           [style.top.px]="drawService.popupPos()!.y"
+           role="dialog"
+           aria-label="What do you want to do with this region?">
+
+        <div class="draw-popup__header">
+          <mat-icon class="draw-popup__icon">crop_free</mat-icon>
+          <span class="draw-popup__title">Region drawn</span>
+          <button class="draw-popup__close" (click)="onPopupDismiss()" aria-label="Dismiss">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="draw-popup__actions">
+          <button class="draw-popup__btn draw-popup__btn--extract"
+                  (click)="onPopupExtract()">
+            <mat-icon>image_search</mat-icon>
+            <span>
+              <strong>Extract &amp; Search</strong>
+              <small>OCR region → find in doc</small>
+            </span>
+          </button>
+          <button class="draw-popup__btn draw-popup__btn--redact"
+                  (click)="onPopupRedact()">
+            <mat-icon>hide_source</mat-icon>
+            <span>
+              <strong>Redact Region</strong>
+              <small>Queue area for removal</small>
+            </span>
+          </button>
+        </div>
+      </div>
+    }
+
   }
 
 </div>

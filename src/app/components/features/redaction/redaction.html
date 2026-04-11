@@ -20,7 +20,7 @@
       <button class="pill-btn" [class.pill-btn--active]="activeTab() === 'draw'"
               (click)="onTabChange('draw')">
         <mat-icon>draw</mat-icon>
-        Draw Regions
+        Regions
         @if (drawService.rectCount() > 0) {
           <span class="pill-badge">{{ drawService.rectCount() }}</span>
         }
@@ -46,13 +46,21 @@
     ══════════════════════════════════════════════════════════════════════════ -->
     @if (activeTab() === 'search') {
 
-      <!-- ── Search row ─────────────────────────────────────────────────────── -->
+      <!-- Region extraction in progress -->
+      @if (isExtracting()) {
+        <div class="banner banner--info">
+          <mat-icon class="spin-icon">image_search</mat-icon>
+          <span>Extracting text from region…</span>
+        </div>
+      }
+
+      <!-- ── Search row ──────────────────────────────────────────────────── -->
       <div class="search-row">
         <div class="search-input-wrap">
           <mat-icon class="search-icon">search</mat-icon>
           <input class="search-input" type="text" placeholder="Find text to redact…"
             [(ngModel)]="searchInput" (keydown.enter)="onSearch()"
-            [disabled]="isSearching() || isOcrSearching() || isRedacting()"
+            [disabled]="isSearching() || isOcrSearching() || isRedacting() || isExtracting()"
             autocomplete="off" spellcheck="false" />
           @if (searchInput) {
             <button class="clear-btn" type="button" (click)="onClear()">
@@ -62,7 +70,7 @@
         </div>
 
         <button class="search-btn" type="button" (click)="onSearch()"
-          [disabled]="!searchInput.trim() || isSearching() || isOcrSearching() || isRedacting()">
+          [disabled]="!searchInput.trim() || isSearching() || isOcrSearching() || isRedacting() || isExtracting()">
           @if (isSearching() || isOcrSearching()) {
             <mat-icon class="spin-icon">autorenew</mat-icon>
           } @else {
@@ -71,7 +79,7 @@
         </button>
       </div>
 
-      <!-- ── Action bar ─────────────────────────────────────────────────────── -->
+      <!-- ── Action bar ──────────────────────────────────────────────────── -->
       <div class="action-bar" [class.action-bar--has-results]="totalMatchCount() > 0">
 
         @if (isRedacting()) {
@@ -128,7 +136,7 @@
 
       </div>
 
-      <!-- ── Banners ────────────────────────────────────────────────────────── -->
+      <!-- ── Banners ────────────────────────────────────────────────────── -->
       @if (errorMessage()) {
         <div class="banner banner--error">
           <mat-icon>error_outline</mat-icon>
@@ -142,7 +150,7 @@
         </div>
       }
 
-      <!-- ── Download ──────────────────────────────────────────────────────── -->
+      <!-- ── Download ──────────────────────────────────────────────────── -->
       @if (redactedBytes() && !isRedacting()) {
         <div class="download-row">
           <button class="download-btn" type="button" (click)="onDownload()">
@@ -153,7 +161,7 @@
         </div>
       }
 
-      <!-- ── Match list ─────────────────────────────────────────────────────── -->
+      <!-- ── Match list ─────────────────────────────────────────────────── -->
       @if (totalMatchCount() > 0 && !isRedacting()) {
         <div class="results">
 
@@ -227,71 +235,66 @@
     }
 
     <!-- ════════════════════════════════════════════════════════════════════════
-         DRAW REGIONS TAB
+         REGIONS TAB
     ══════════════════════════════════════════════════════════════════════════ -->
     @if (activeTab() === 'draw') {
 
-      <!-- Draw mode toggle — subdued, not dominant -->
-      <button class="draw-mode-toggle"
-              [class.draw-mode-toggle--active]="drawService.isDrawMode()"
-              (click)="drawService.toggleDrawMode()">
-        <mat-icon>{{ drawService.isDrawMode() ? 'stop_circle' : 'draw' }}</mat-icon>
-        {{ drawService.isDrawMode() ? 'Stop Drawing' : 'Start Drawing' }}
-      </button>
+      @if (!drawService.hasRects()) {
+        <div class="draw-empty">
+          <mat-icon>crop_free</mat-icon>
+          <p>No regions drawn yet.</p>
+          <small>Enable <strong>Draw</strong> in the document toolbar, then drag on the PDF.</small>
+        </div>
+      }
 
-      <!-- Instruction hint -->
-      <div class="draw-hint">
-        <mat-icon>info_outline</mat-icon>
-        @if (drawService.isDrawMode()) {
-          <span>Switch to the <strong>Document</strong> tab and drag on the PDF to draw a region.</span>
-        } @else {
-          <span>Enable drawing above, then drag directly on the PDF to mark regions for redaction.</span>
-        }
-      </div>
-
-      <!-- Drawn regions -->
       @if (drawService.hasRects()) {
 
-        <!-- Action bar: count + redact — single source of truth for count -->
-        <div class="draw-action-bar">
-          <div class="action-bar__count">
-            <span class="count-num">{{ drawService.rectCount() }}</span>
-            <span class="count-label">region{{ drawService.rectCount() !== 1 ? 's' : '' }}</span>
-          </div>
-          <button class="redact-btn" type="button"
-                  (click)="onRedactDrawn()" [disabled]="!canRedactDrawn()">
-            @if (isRedacting()) {
-              <mat-icon class="spin-icon">autorenew</mat-icon>
-            } @else {
-              <mat-icon>hide_source</mat-icon>
-            }
-            Redact
-          </button>
-        </div>
-        @if (isRedacting()) {
-          <div class="action-bar action-bar--has-results">
-            <div class="action-bar__progress">
-              <mat-icon class="spin-icon">autorenew</mat-icon>
-              @if (redactionProgress(); as p) {
-                <span>Redacting — page {{ p.page }} of {{ p.total }}</span>
+        <!-- Redact action bar — only when there are redact-purpose rects -->
+        @if (drawService.redactRects().length > 0) {
+          <div class="draw-action-bar">
+            <div class="action-bar__count">
+              <span class="count-num">{{ drawService.redactRects().length }}</span>
+              <span class="count-label">
+                region{{ drawService.redactRects().length !== 1 ? 's' : '' }} queued
+              </span>
+            </div>
+            <button class="redact-btn" type="button"
+                    (click)="onRedactDrawn()" [disabled]="!canRedactDrawn()">
+              @if (isRedacting()) {
+                <mat-icon class="spin-icon">autorenew</mat-icon>
               } @else {
-                <span>Initialising…</span>
+                <mat-icon>hide_source</mat-icon>
               }
-            </div>
-            <div class="action-bar__track">
-              <div class="action-bar__fill" [style.width.%]="redactionProgress()
-                ? (redactionProgress()!.page / redactionProgress()!.total) * 100 : 0"></div>
-            </div>
+              Redact all
+            </button>
           </div>
+
+          @if (isRedacting()) {
+            <div class="action-bar action-bar--has-results">
+              <div class="action-bar__progress">
+                <mat-icon class="spin-icon">autorenew</mat-icon>
+                @if (redactionProgress(); as p) {
+                  <span>Redacting — page {{ p.page }} of {{ p.total }}</span>
+                } @else {
+                  <span>Initialising…</span>
+                }
+              </div>
+              <div class="action-bar__track">
+                <div class="action-bar__fill" [style.width.%]="redactionProgress()
+                  ? (redactionProgress()!.page / redactionProgress()!.total) * 100 : 0"></div>
+              </div>
+            </div>
+          }
         }
 
+        <!-- Region list — all rects grouped by page -->
         <div class="results">
           <div class="result-group">
 
-            <!-- Header: no count here — it's already in the action bar above -->
             <div class="group-header">
               <span class="dot dot--draw"></span>
               <span class="group-label">Drawn Regions</span>
+              <span class="group-count">{{ drawService.rectCount() }}</span>
               <button class="select-btn" style="margin-left:auto"
                       type="button" (click)="drawService.clear()">Clear all</button>
             </div>
@@ -300,17 +303,75 @@
               <div class="page-group">
                 <span class="page-label">p.{{ group.page }}</span>
                 <div class="page-hits">
-                  <!-- $index is local to this page group so we track a global number separately -->
                   @for (rect of group.rects; track rect.id; let i = $index) {
-                    <div class="hit hit--drawn"
+
+                    <div class="hit hit--region"
                          [class.hit--active]="drawService.focusedRectId() === rect.id"
+                         [class.hit--region-redact]="rect.purpose === 'redact'"
+                         [class.hit--region-extract]="rect.purpose === 'extract'"
                          (click)="drawService.setFocused(rect.id)">
-                      <mat-icon class="hit-draw-icon">crop_free</mat-icon>
-                      <span class="hit-draw-label">Region {{ i + 1 }}</span>
-                      <button class="remove-rect-btn" type="button"
-                              (click)="$event.stopPropagation(); drawService.removeRect(rect.id)">
-                        <mat-icon>close</mat-icon>
-                      </button>
+
+                      <!-- Icon changes by purpose -->
+                      @if (rect.purpose === 'redact') {
+                        <mat-icon class="hit-draw-icon hit-draw-icon--redact">hide_source</mat-icon>
+                      } @else if (rect.purpose === 'extract') {
+                        <mat-icon class="hit-draw-icon hit-draw-icon--extract">image_search</mat-icon>
+                      } @else {
+                        <mat-icon class="hit-draw-icon">crop_free</mat-icon>
+                      }
+
+                      <span class="hit-region-body">
+                        @if (rect.purpose === 'extract' && rect.extractedText) {
+                          <span class="hit-draw-label">"{{ rect.extractedText }}"</span>
+                          @if (rect.confidence) {
+                            <span class="conf" [class.conf--low]="rect.confidence < 70">
+                              {{ rect.confidence }}%
+                            </span>
+                          }
+                        } @else {
+                          <span class="hit-draw-label">Region {{ i + 1 }}</span>
+                          <span class="hit-region-purpose">
+                            {{ rect.purpose === 'redact' ? 'Redact' : 'Pending' }}
+                          </span>
+                        }
+                      </span>
+
+                      <!-- Inline actions — shown on focus (desktop) or always (mobile) -->
+                      <div class="hit-region-actions">
+                        <!-- Extract & Search (if not already extract) -->
+                        @if (rect.purpose !== 'extract') {
+                          <button class="region-action-btn region-action-btn--search"
+                                  matTooltip="OCR region → search document"
+                                  type="button"
+                                  (click)="$event.stopPropagation(); handleExtractRegion(rect.id)">
+                            <mat-icon>image_search</mat-icon>
+                          </button>
+                        }
+                        <!-- Re-search (if already extracted) -->
+                        @if (rect.purpose === 'extract' && rect.extractedText) {
+                          <button class="region-action-btn region-action-btn--search"
+                                  matTooltip="Re-run search"
+                                  type="button"
+                                  (click)="$event.stopPropagation(); reSearchFromRect(rect.extractedText!)">
+                            <mat-icon>replay</mat-icon>
+                          </button>
+                        }
+                        <!-- Promote to redact (if not already redact) -->
+                        @if (rect.purpose !== 'redact') {
+                          <button class="region-action-btn region-action-btn--redact"
+                                  matTooltip="Queue region for redaction"
+                                  type="button"
+                                  (click)="$event.stopPropagation(); promoteToRedact(rect.id)">
+                            <mat-icon>hide_source</mat-icon>
+                          </button>
+                        }
+                        <!-- Remove -->
+                        <button class="remove-rect-btn" type="button"
+                                (click)="$event.stopPropagation(); drawService.removeRect(rect.id)">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </div>
+
                     </div>
                   }
                 </div>
@@ -320,11 +381,6 @@
           </div>
         </div>
 
-      } @else {
-        <div class="draw-empty">
-          <mat-icon>crop_free</mat-icon>
-          <p>No regions drawn yet.</p>
-        </div>
       }
 
       @if (errorMessage()) {

@@ -4,13 +4,13 @@ import type { OcrPageBlob, OcrWorkerMessage, OcrWorkerResponse } from './ocr.typ
 import { customLogger } from '../../../../utils/custom-logger';
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const DET_MAX_SIDE = 960;
-const DET_THRESH = 0.3;
-const BOX_THRESH = 0.5;
-const UNCLIP_RATIO = 1.6;
-const REC_H = 48;
-const DET_MEAN = [0.485, 0.456, 0.406];
-const DET_STD = [0.229, 0.224, 0.225];
+const DET_MAX_SIDE  = 960;
+const DET_THRESH    = 0.3;
+const BOX_THRESH    = 0.5;
+const UNCLIP_RATIO  = 1.6;
+const REC_H         = 48;
+const DET_MEAN      = [0.485, 0.456, 0.406];
+const DET_STD       = [0.229, 0.224, 0.225];
 
 // ── Model state ───────────────────────────────────────────────────────────────
 let detSession: ort.InferenceSession | null = null;
@@ -36,17 +36,11 @@ async function ensureModels(): Promise<void> {
     detSession = await ort.InferenceSession.create(detBuf, { executionProviders: ['wasm'] });
     recSession = await ort.InferenceSession.create(recBuf, { executionProviders: ['wasm'] });
 
-    // normalize text first
     const cleanedDictText = dictText
-      .replace(/^\uFEFF/, '') // remove Byte Order Mark if present
-      .replace(/\r/g, '');    // normalize line endings
+      .replace(/^\uFEFF/, '')
+      .replace(/\r/g, '');
 
-    // split into lines
-    const dictLines = cleanedDictText
-      .split('\n')
-      .filter(line => line !== '');
-
-    // build char list
+    const dictLines = cleanedDictText.split('\n').filter(line => line !== '');
     charList = ['blank', ...dictLines, ' '];
   })();
 
@@ -56,24 +50,95 @@ async function ensureModels(): Promise<void> {
 // ── Message handler ───────────────────────────────────────────────────────────
 addEventListener('message', async (event: MessageEvent<OcrWorkerMessage>) => {
   const msg = event.data;
-  if (msg.type !== 'findInImages') return;
 
-  try {
-    await ensureModels();
-    const matches = await findInImages(msg.pages, msg.searchTerm, msg.id);
-    postMessage({ type: 'done', id: msg.id, matches } satisfies OcrWorkerResponse);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    customLogger.error('[OcrWorker] Fatal:', message);
-    postMessage({ type: 'error', id: msg.id, message } satisfies OcrWorkerResponse);
+  // ── extractRegion: OCR a pre-cropped blob, return all recognised text ──────
+  if (msg.type === 'extractRegion') {
+    try {
+      await ensureModels();
+      const { text, confidence } = await extractRegion(msg.blob);
+      postMessage({ type: 'extractDone', id: msg.id, text, confidence });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      customLogger.error('[OcrWorker] extractRegion failed:', message);
+      // Return empty rather than crashing — UI handles the "no text" case
+      postMessage({ type: 'extractDone', id: msg.id, text: '', confidence: 0 });
+    }
+    return;
+  }
+
+  // ── findInImages: search for a term across pre-rendered page blobs ─────────
+  if (msg.type === 'findInImages') {
+    try {
+      await ensureModels();
+      const matches = await findInImages(msg.pages, msg.searchTerm, msg.id);
+      postMessage({ type: 'done', id: msg.id, matches } satisfies OcrWorkerResponse);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      customLogger.error('[OcrWorker] Fatal:', message);
+      postMessage({ type: 'error', id: msg.id, message } satisfies OcrWorkerResponse);
+    }
+    return;
   }
 });
 
-// ── Pipeline ──────────────────────────────────────────────────────────────────
+// ── extractRegion pipeline ────────────────────────────────────────────────────
+/**
+ * Runs the full det→rec pipeline on a single pre-cropped image blob.
+ * Collects ALL recognised text from every detected box (no term filtering).
+ * Returns the concatenated text and the mean confidence.
+ */
+async function extractRegion(blob: Blob): Promise<{ text: string; confidence: number }> {
+  const imgData                        = await blobToImageData(blob);
+  const { tensor, detScaleX, detScaleY } = buildDetTensor(imgData);
+
+  const detOut    = await detSession!.run({ [detSession!.inputNames[0]]: tensor });
+  const probTensor = detOut[detSession!.outputNames[0]];
+  const dims       = probTensor.dims as number[];
+  const [mapH, mapW] = dims.length === 4 ? [dims[2], dims[3]] : [dims[1], dims[2]];
+  const boxes      = dbPostProcess(probTensor.data as Float32Array, mapH, mapW);
+
+  customLogger.log(`[OcrWorker] extractRegion: ${boxes.length} box(es)`);
+
+  const srcCanvas = imageDataToCanvas(imgData);
+  const parts: string[] = [];
+  let sumConf = 0;
+
+  for (const box of boxes) {
+    const recTensor = buildRecTensor(srcCanvas, box, detScaleX, detScaleY);
+    if (!recTensor) continue;
+
+    const recOut        = await recSession!.run({ [recSession!.inputNames[0]]: recTensor });
+    const { text, conf } = ctcDecode(recOut[recSession!.outputNames[0]]);
+
+    customLogger.log(`[OcrWorker] extractRegion rec: "${text}" conf=${conf.toFixed(2)}`);
+
+    if (text) {
+      parts.push(text);
+      sumConf += conf;
+    }
+  }
+
+  // If det found nothing, fall back to treating the entire blob as one rec crop
+  if (boxes.length === 0) {
+    const fallbackTensor = buildRecTensorFromFull(imgData);
+    if (fallbackTensor) {
+      const recOut        = await recSession!.run({ [recSession!.inputNames[0]]: fallbackTensor });
+      const { text, conf } = ctcDecode(recOut[recSession!.outputNames[0]]);
+      if (text) { parts.push(text); sumConf += conf; }
+    }
+  }
+
+  const joined     = parts.join(' ').replace(/\s+/g, ' ').trim();
+  const confidence = parts.length > 0 ? Math.round((sumConf / parts.length) * 100) : 0;
+
+  return { text: joined, confidence };
+}
+
+// ── findInImages pipeline (unchanged) ────────────────────────────────────────
 async function findInImages(
-  pages: OcrPageBlob[],
+  pages:      OcrPageBlob[],
   searchTerm: string,
-  jobId: string,
+  jobId:      string,
 ): Promise<OcrMatch[]> {
   const matches: OcrMatch[] = [];
   const termLower = searchTerm.toLowerCase();
@@ -83,13 +148,13 @@ async function findInImages(
     postMessage({ type: 'progress', id: jobId, page: i + 1, total: pages.length } satisfies OcrWorkerResponse);
 
     try {
-      const imgData = await blobToImageData(blob);
+      const imgData                          = await blobToImageData(blob);
       const { tensor, detScaleX, detScaleY } = buildDetTensor(imgData);
-      const detOut = await detSession!.run({ [detSession!.inputNames[0]]: tensor });
+      const detOut    = await detSession!.run({ [detSession!.inputNames[0]]: tensor });
       const probTensor = detOut[detSession!.outputNames[0]];
-      const dims = probTensor.dims as number[];
+      const dims       = probTensor.dims as number[];
       const [mapH, mapW] = dims.length === 4 ? [dims[2], dims[3]] : [dims[1], dims[2]];
-      const boxes = dbPostProcess(probTensor.data as Float32Array, mapH, mapW);
+      const boxes      = dbPostProcess(probTensor.data as Float32Array, mapH, mapW);
 
       customLogger.log(`[OcrWorker] p${pageNum}: ${boxes.length} boxes`);
 
@@ -99,7 +164,7 @@ async function findInImages(
         const recTensor = buildRecTensor(srcCanvas, box, detScaleX, detScaleY);
         if (!recTensor) continue;
 
-        const recOut = await recSession!.run({ [recSession!.inputNames[0]]: recTensor });
+        const recOut        = await recSession!.run({ [recSession!.inputNames[0]]: recTensor });
         const { text, conf } = ctcDecode(recOut[recSession!.outputNames[0]]);
         customLogger.log(`[OcrWorker] rec: "${text}" conf=${conf.toFixed(2)}`);
 
@@ -107,22 +172,27 @@ async function findInImages(
         if (!text || termIdx === -1) continue;
 
         const [bx0, by0, bx1, by1] = box;
-
-        // proportional sub-rect based on character position
         const ratio0 = termIdx / text.length;
         const ratio1 = (termIdx + searchTerm.length) / text.length;
-        const subX0 = bx0 + ratio0 * (bx1 - bx0);
-        const subX1 = bx0 + ratio1 * (bx1 - bx0);
+        const subX0  = bx0 + ratio0 * (bx1 - bx0);
+        const subX1  = bx0 + ratio1 * (bx1 - bx0);
 
         const px0 = subX0 * detScaleX + offsetPixelX;
-        const py0 = by0 * detScaleY + offsetPixelY;
+        const py0 = by0  * detScaleY + offsetPixelY;
         const px1 = subX1 * detScaleX + offsetPixelX;
-        const py1 = by1 * detScaleY + offsetPixelY;
+        const py1 = by1  * detScaleY + offsetPixelY;
 
         const pdfRect = pixelToPdf({ x0: px0, y0: py0, x1: px1, y1: py1 }, scaleX, scaleY, pdfHeight1x);
         if (pdfRect[2] <= pdfRect[0] || pdfRect[3] <= pdfRect[1]) continue;
 
-        matches.push({ page: pageNum, term: searchTerm, context: text, rect: pdfRect, confidence: Math.round(conf * 100), checked: false });
+        matches.push({
+          page:       pageNum,
+          term:       searchTerm,
+          context:    text,
+          rect:       pdfRect,
+          confidence: Math.round(conf * 100),
+          checked:    false,
+        });
       }
     } catch (err) {
       customLogger.warn(`[OcrWorker] p${pageNum} failed:`, err);
@@ -136,10 +206,10 @@ async function findInImages(
 function buildDetTensor(img: ImageData): { tensor: ort.Tensor; detScaleX: number; detScaleY: number } {
   const { width: oW, height: oH } = img;
   const scale = Math.max(oW, oH) > DET_MAX_SIDE ? DET_MAX_SIDE / Math.max(oW, oH) : 1;
-  const padW = Math.ceil(Math.round(oW * scale) / 32) * 32;
-  const padH = Math.ceil(Math.round(oH * scale) / 32) * 32;
+  const padW   = Math.ceil(Math.round(oW * scale) / 32) * 32;
+  const padH   = Math.ceil(Math.round(oH * scale) / 32) * 32;
 
-  const dst = new OffscreenCanvas(padW, padH);
+  const dst    = new OffscreenCanvas(padW, padH);
   const dstCtx = dst.getContext('2d')!;
   dstCtx.drawImage(imageDataToCanvas(img), 0, 0, Math.round(oW * scale), Math.round(oH * scale));
 
@@ -149,13 +219,13 @@ function buildDetTensor(img: ImageData): { tensor: ort.Tensor; detScaleX: number
 
   for (let i = 0; i < HW; i++) {
     const p = i * 4;
-    td[i] = (px[p] / 255 - DET_MEAN[0]) / DET_STD[0];
-    td[HW + i] = (px[p + 1] / 255 - DET_MEAN[1]) / DET_STD[1];
+    td[i]         = (px[p]     / 255 - DET_MEAN[0]) / DET_STD[0];
+    td[HW + i]    = (px[p + 1] / 255 - DET_MEAN[1]) / DET_STD[1];
     td[2 * HW + i] = (px[p + 2] / 255 - DET_MEAN[2]) / DET_STD[2];
   }
 
   return {
-    tensor: new ort.Tensor('float32', td, [1, 3, padH, padW]),
+    tensor:    new ort.Tensor('float32', td, [1, 3, padH, padW]),
     detScaleX: oW / padW,
     detScaleY: oH / padH,
   };
@@ -185,7 +255,7 @@ function dbPostProcess(
 
       while (stack.length) {
         const idx = stack.pop()!;
-        const cy = Math.floor(idx / mapW), cx = idx % mapW;
+        const cy  = Math.floor(idx / mapW), cx = idx % mapW;
         if (cx < minX) minX = cx; if (cx > maxX) maxX = cx;
         if (cy < minY) minY = cy; if (cy > maxY) maxY = cy;
         sumP += prob[idx]; cnt++;
@@ -218,29 +288,49 @@ function dbPostProcess(
 
 // ── Rec preprocessing ─────────────────────────────────────────────────────────
 function buildRecTensor(
-  src: OffscreenCanvas,
-  box: [number, number, number, number],
+  src:       OffscreenCanvas,
+  box:       [number, number, number, number],
   detScaleX: number,
   detScaleY: number,
 ): ort.Tensor | null {
   const ox0 = Math.round(box[0] * detScaleX), oy0 = Math.round(box[1] * detScaleY);
   const ox1 = Math.round(box[2] * detScaleX), oy1 = Math.round(box[3] * detScaleY);
-  const bW = ox1 - ox0, bH = oy1 - oy0;
+  const bW  = ox1 - ox0, bH = oy1 - oy0;
   if (bW <= 0 || bH <= 0) return null;
 
-  const recW = Math.max(1, Math.round(bW * REC_H / bH));
-  const dst = new OffscreenCanvas(recW, REC_H);
+  const recW   = Math.max(1, Math.round(bW * REC_H / bH));
+  const dst    = new OffscreenCanvas(recW, REC_H);
   const dstCtx = dst.getContext('2d')!;
   dstCtx.drawImage(src, ox0, oy0, bW, bH, 0, 0, recW, REC_H);
 
-  const px = dstCtx.getImageData(0, 0, recW, REC_H).data;
+  return recTensorFromCanvas(dstCtx, recW);
+}
+
+/**
+ * Fallback: treat the entire image as one rec strip (used when det finds no boxes
+ * in a small region crop, e.g. a single short word tightly cropped by the user).
+ */
+function buildRecTensorFromFull(img: ImageData): ort.Tensor | null {
+  const { width, height } = img;
+  if (width <= 0 || height <= 0) return null;
+
+  const recW   = Math.max(1, Math.round(width * REC_H / height));
+  const dst    = new OffscreenCanvas(recW, REC_H);
+  const dstCtx = dst.getContext('2d')!;
+  dstCtx.drawImage(imageDataToCanvas(img), 0, 0, width, height, 0, 0, recW, REC_H);
+
+  return recTensorFromCanvas(dstCtx, recW);
+}
+
+function recTensorFromCanvas(ctx: OffscreenCanvasRenderingContext2D, recW: number): ort.Tensor {
+  const px = ctx.getImageData(0, 0, recW, REC_H).data;
   const HW = REC_H * recW;
   const td = new Float32Array(3 * HW);
 
   for (let i = 0; i < HW; i++) {
     const p = i * 4;
-    td[i] = (px[p] / 255 - 0.5) / 0.5;
-    td[HW + i] = (px[p + 1] / 255 - 0.5) / 0.5;
+    td[i]          = (px[p]     / 255 - 0.5) / 0.5;
+    td[HW + i]     = (px[p + 1] / 255 - 0.5) / 0.5;
     td[2 * HW + i] = (px[p + 2] / 255 - 0.5) / 0.5;
   }
 
@@ -248,17 +338,22 @@ function buildRecTensor(
 }
 
 // ── CTC greedy decode ─────────────────────────────────────────────────────────
-let _recDimsLogged = false;
-
 function ctcDecode(tensor: ort.Tensor): { text: string; conf: number } {
   const dims = tensor.dims as number[];
   let seqLen: number, numClasses: number;
 
-  if (dims.length === 3) { seqLen = dims[0] === 1 ? dims[1] : dims[0]; numClasses = dims[2]; }
-  else if (dims.length === 2) { seqLen = dims[0]; numClasses = dims[1]; }
-  else { customLogger.warn('[OcrWorker] ctcDecode: unexpected dims', dims); return { text: '', conf: 0 }; }
+  if (dims.length === 3) {
+    seqLen = dims[0] === 1 ? dims[1] : dims[0];
+    numClasses = dims[2];
+  } else if (dims.length === 2) {
+    seqLen = dims[0];
+    numClasses = dims[1];
+  } else {
+    customLogger.warn('[OcrWorker] ctcDecode: unexpected dims', dims);
+    return { text: '', conf: 0 };
+  }
 
-  const data = tensor.data as Float32Array;
+  const data      = tensor.data as Float32Array;
   const SPACE_GAP = Math.max(2, Math.round(seqLen * 0.12));
 
   let text = '', sumConf = 0, cnt = 0, last = -1, blankRun = 0;
@@ -291,14 +386,14 @@ async function blobToImageData(blob: Blob): Promise<ImageData> {
     throw new Error(`Invalid bitmap dimensions: ${bmp.width}×${bmp.height}`);
   }
   const canvas = new OffscreenCanvas(bmp.width, bmp.height);
-  const ctx = canvas.getContext('2d')!;
+  const ctx    = canvas.getContext('2d')!;
   ctx.drawImage(bmp, 0, 0);
   bmp.close();
   return ctx.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function imageDataToCanvas(img: ImageData): OffscreenCanvas {
-  const c = new OffscreenCanvas(img.width, img.height);
+  const c   = new OffscreenCanvas(img.width, img.height);
   const ctx = c.getContext('2d')!;
   ctx.putImageData(img, 0, 0);
   return c;

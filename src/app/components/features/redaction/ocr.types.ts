@@ -15,9 +15,10 @@ export type OcrWorkerMessage = {
   id:         string;
   pages:      OcrPageBlob[];
   searchTerm: string;
-};
+} | { type: 'extractRegion'; id: string; blob: Blob };
 
 export type OcrWorkerResponse =
   | { type: 'done';     id: string; matches: OcrMatch[] }
   | { type: 'error';    id: string; message: string      }
-  | { type: 'progress'; id: string; page: number; total: number };
+  | { type: 'progress'; id: string; page: number; total: number }
+  | { type: 'extractDone'; id: string; text: string; confidence: number };
