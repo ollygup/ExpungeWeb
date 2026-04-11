@@ -128,16 +128,40 @@ export class DrawService {
     this._popupPos.set(null);
   }
 
+  private clearPendingUi(id: string): void {
+    if (this._pendingId() === id) {
+      this._pendingId.set(null);
+      this._popupPos.set(null);
+    }
+  }
+
   /**
    * - 'redact':  resolves pending rect as 'redact'
    * - 'dismiss': removes pending rect
    * - 'extract': leaves as 'pending'; RedactionComponent resolves after OCR
    */
   dispatchPopupAction(id: string, action: DrawPopupAction['action']): void {
-    if (action === 'redact')  this.setPurpose(id, 'redact');
-    if (action === 'dismiss') this.dismissPending();
+    if (action === 'redact') {
+      this.setPurpose(id, 'redact');
+    } else if (action === 'dismiss') {
+      this.dismissPending();
+    } else if (action === 'extract') {
+      this.clearPendingUi(id); // clear popup immediately for better UX;
+    }
+
     this.action$.next({ id, action });
   }
+
+  // /**
+  //  * - 'redact':  resolves pending rect as 'redact'
+  //  * - 'dismiss': removes pending rect
+  //  * - 'extract': leaves as 'pending'; RedactionComponent resolves after OCR
+  //  */
+  // dispatchPopupAction(id: string, action: DrawPopupAction['action']): void {
+  //   if (action === 'redact')  this.setPurpose(id, 'redact');
+  //   if (action === 'dismiss') this.dismissPending();
+  //   this.action$.next({ id, action });
+  // }
 
   // ── MuPDF payload ──────────────────────────────────────────────────────────
   toRedactionRects(): Array<{ pageIndex: number; rect: [number, number, number, number] }> {

@@ -166,7 +166,7 @@
          Position:fixed anchored to viewport coords via cssToScreen().
     ──────────────────────────────────────────────────────────────────────── -->
     @if (drawService.pendingId() && drawService.popupPos()) {
-      <div class="draw-popup-backdrop" (pointerdown)="onPopupDismiss()"></div>
+      <div class="draw-popup-backdrop" (click)="onPopupDismiss()"></div>
 
       <div class="draw-popup"
            (pointerdown)="$event.stopPropagation()"
