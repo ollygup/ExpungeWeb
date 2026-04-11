@@ -60,7 +60,7 @@
 
         <div class="toolbar-divider"></div>
 
-        <!-- Draw mode toggle + sub-mode selector -->
+        <!-- Draw mode toggle + sub-mode selector (desktop only) -->
         <div class="toolbar-group toolbar-group--draw">
           <button class="tool-btn tool-btn--draw"
                   [class.tool-btn--draw-active]="drawService.isDrawMode()"
@@ -133,14 +133,43 @@
 
     </div>
 
+    <!-- ── Mobile / Tablet Draw FAB (hidden on desktop via CSS) ──────────────
+         Speed-dial: tap the FAB to toggle draw mode; submodes animate up above.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div class="draw-fab-container">
+      @if (drawService.isDrawMode()) {
+        <div class="draw-fab-submodes">
+          <button class="draw-fab-sub"
+                  [class.draw-fab-sub--active]="drawService.subMode() === 'multi'"
+                  (click)="drawService.setSubMode('multi')"
+                  aria-label="Multi: draw multiple redact regions">
+            <mat-icon>filter_none</mat-icon>
+          </button>
+          <button class="draw-fab-sub"
+                  [class.draw-fab-sub--active]="drawService.subMode() === 'single'"
+                  (click)="drawService.setSubMode('single')"
+                  aria-label="Single: draw one region, choose action">
+            <mat-icon>filter_1</mat-icon>
+          </button>
+        </div>
+      }
+      <button class="draw-fab"
+              [class.draw-fab--active]="drawService.isDrawMode()"
+              [attr.aria-label]="drawService.isDrawMode() ? 'Disable drawing' : 'Enable drawing'"
+              (click)="drawService.toggleDrawMode()">
+        <mat-icon>{{ drawService.isDrawMode() ? 'close' : 'draw' }}</mat-icon>
+      </button>
+    </div>
+
     <!-- ── Draw Action Popup (single mode only) ───────────────────────────────
          Rendered OUTSIDE canvas-wrap so it is unaffected by the CSS scale.
          Position:fixed anchored to viewport coords via cssToScreen().
     ──────────────────────────────────────────────────────────────────────── -->
     @if (drawService.pendingId() && drawService.popupPos()) {
-      <div class="draw-popup-backdrop" (click)="onPopupDismiss()"></div>
+      <div class="draw-popup-backdrop" (pointerdown)="onPopupDismiss()"></div>
 
       <div class="draw-popup"
+           (pointerdown)="$event.stopPropagation()"
            [style.left.px]="drawService.popupPos()!.x"
            [style.top.px]="drawService.popupPos()!.y"
            role="dialog"
