@@ -38,6 +38,7 @@ export class DrawService {
 
   /** Fires when user picks an action from the single-mode popup. */
   readonly action$ = new Subject<DrawPopupAction>();
+  readonly changeMobileTab$ = new Subject<void>();
 
   // ── Computed ───────────────────────────────────────────────────────────────
   readonly hasRects    = computed(() => this._rects().length > 0);
@@ -147,21 +148,11 @@ export class DrawService {
       this.dismissPending();
     } else if (action === 'extract') {
       this.clearPendingUi(id); // clear popup immediately for better UX;
+      this.changeMobileTab$.next(); // switch from PDF to Tools tab (mobile only)
     }
 
     this.action$.next({ id, action });
   }
-
-  // /**
-  //  * - 'redact':  resolves pending rect as 'redact'
-  //  * - 'dismiss': removes pending rect
-  //  * - 'extract': leaves as 'pending'; RedactionComponent resolves after OCR
-  //  */
-  // dispatchPopupAction(id: string, action: DrawPopupAction['action']): void {
-  //   if (action === 'redact')  this.setPurpose(id, 'redact');
-  //   if (action === 'dismiss') this.dismissPending();
-  //   this.action$.next({ id, action });
-  // }
 
   // ── MuPDF payload ──────────────────────────────────────────────────────────
   toRedactionRects(): Array<{ pageIndex: number; rect: [number, number, number, number] }> {

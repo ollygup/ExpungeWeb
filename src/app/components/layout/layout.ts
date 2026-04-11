@@ -19,6 +19,8 @@ import { PdfService } from '../../services/pdf.service';
 import { ThemeService } from '../../services/theme.service';
 import { ToolEntry } from '../home/features-registry';
 import { DataManagerService } from '../../services/data-manager.service';
+import { Subscription } from 'rxjs';
+import { DrawService } from '../../services/draw.service';
 
 type MobileTab = 'document' | 'tools';
 
@@ -33,6 +35,7 @@ export class LayoutComponent implements OnDestroy {
   readonly pdfService = inject(PdfService);
   readonly themeService = inject(ThemeService);
   readonly dataManagerService = inject(DataManagerService);
+  readonly drawService = inject(DrawService);
 
   // ── Inputs / Outputs ─────────────────────────────────────────
   readonly tools = input<ToolEntry[]>([]);
@@ -59,6 +62,9 @@ export class LayoutComponent implements OnDestroy {
   readonly isDraggingOver = signal(false);
   readonly overflowOpen = signal(false);
 
+  // ── Subscriptions ───────────────────────────────────────────────
+  private subs = new Subscription();
+
   // ── Resize ───────────────────────────────────────────────────
   private isResizing = false;
   private resizeStartX = 0;
@@ -75,6 +81,11 @@ export class LayoutComponent implements OnDestroy {
       if (!entry) return;
       entry.component().then(comp => this.activeToolComponent.set(comp));
     });
+
+    this.subs.add(
+      this.drawService.changeMobileTab$.subscribe(() => {
+        this.setTab('tools');})
+    );
 
     document.addEventListener('mousemove', this.mouseMoveRef);
     document.addEventListener('mouseup', this.mouseUpRef);
