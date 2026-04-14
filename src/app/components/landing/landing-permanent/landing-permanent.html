@@ -1,0 +1,235 @@
+<main class="landing">
+
+    <!-- ── Nav ───────────────────────────────────────────────── -->
+    <app-landing-header></app-landing-header>
+
+    <!-- ── Hero ──────────────────────────────────────────────── -->
+    <section class="hero" aria-labelledby="hero-heading">
+        <div class="hero__inner">
+            <span class="hero__eyebrow">True content removal</span>
+            <h1 id="hero-heading" class="hero__title">
+                Make It Gone.<br>
+                <span class="hero__title--dim">Not Just Hidden.</span>
+            </h1>
+            <p class="hero__sub">
+                Drawing a black box over text in a PDF does not remove it —
+                <span class="hero__sub--em">the words are still in the file.</span>
+                Expunge removes the content from the PDF data itself. A text extractor, a copy-paste, a hex viewer —
+                none of them find anything, because there is nothing to find.
+            </p>
+            <a class="hero__btn" routerLink="/workspace">
+                Redact a PDF
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- ── The Problem ───────────────────────────────────────── -->
+    <section class="section problem-section" aria-labelledby="problem-heading">
+        <span class="section__label">The black box problem</span>
+        <h2 id="problem-heading" class="section__heading">How Most PDF Redaction Actually Works — And Why It Fails</h2>
+        <p class="section__sub">When you "redact" a PDF in most tools, here is what happens under the hood.</p>
+
+        <div class="explainer">
+            <div class="explainer__step">
+                <div class="explainer__step__num" aria-hidden="true">1</div>
+                <div class="explainer__step__content">
+                    <h3>A rectangle is drawn over the text</h3>
+                    <p>The tool adds a filled shape — usually black — as an annotation layer on top of the page.
+                        Visually, it looks redacted.</p>
+                </div>
+            </div>
+            <div class="explainer__connector" aria-hidden="true"></div>
+            <div class="explainer__step">
+                <div class="explainer__step__num" aria-hidden="true">2</div>
+                <div class="explainer__step__content">
+                    <h3>The original text stays in the file</h3>
+                    <p>The underlying characters were never touched. They remain in the PDF's content data exactly as
+                        they were.</p>
+                </div>
+            </div>
+            <div class="explainer__connector" aria-hidden="true"></div>
+            <div class="explainer__step explainer__step--danger">
+                <div class="explainer__step__num" aria-hidden="true">3</div>
+                <div class="explainer__step__content">
+                    <h3>Anyone can remove the box and read the text</h3>
+                    <p>Disabling the annotation layer, copying text from the area, or running a text extractor will
+                        surface the original content. The redaction provides no real protection.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-callout" role="note">
+            <strong>Quick test:</strong> Open any "redacted" PDF from another tool, try to select and copy text from a
+            blacked-out area, then paste it into a text editor. If text appears, it was not redacted — just covered.
+        </div>
+    </section>
+
+    <!-- ── How Expunge Works ─────────────────────────────────── -->
+    <section class="section" aria-labelledby="how-heading">
+        <span class="section__label">What Expunge does differently</span>
+        <h2 id="how-heading" class="section__heading">Content Removed From the File Itself</h2>
+        <p class="section__sub">Expunge does not draw shapes over text. It rewrites the PDF so the text is no longer
+            present.</p>
+        <div class="compare-grid">
+            <article class="compare-card compare-card--bad">
+                <h3>❌ Covering text</h3>
+                <ul>
+                    <li>Adds a shape on top of the text</li>
+                    <li>Text remains in the file data</li>
+                    <li>Copy-paste reveals original content</li>
+                    <li>Text extractor finds original content</li>
+                    <li>Removing the annotation layer exposes it</li>
+                </ul>
+            </article>
+            <article class="compare-card compare-card--good">
+                <h3>✓ Expunge</h3>
+                <ul>
+                    <li>Rewrites the PDF content</li>
+                    <li>Text is not present in the file data</li>
+                    <li>Copy-paste finds nothing</li>
+                    <li>Text extractor finds nothing</li>
+                    <li>No annotation layer to remove</li>
+                </ul>
+            </article>
+        </div>
+    </section>
+
+    <!-- ── Features ──────────────────────────────────────────── -->
+    <section class="section" aria-labelledby="features-heading">
+        <span class="section__label">How to redact</span>
+        <h2 id="features-heading" class="section__heading">Three Ways to Mark Content for Removal</h2>
+        <p class="section__sub">Expunge handles typed PDFs, scanned documents, and complex layouts.</p>
+        <div class="card-grid">
+            <article class="card">
+                <div class="card__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                </div>
+                <h3 class="card__title">Search and Redact</h3>
+                <p class="card__body">Type a word, phrase, or regular expression. Every matching instance across all
+                    pages is highlighted for review, then removed in one step.</p>
+            </article>
+            <article class="card">
+                <div class="card__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M8 12h8M12 8v8" />
+                    </svg>
+                </div>
+                <h3 class="card__title">Draw a Region</h3>
+                <p class="card__body">Draw a rectangle over any area of the page — text, images, signatures, stamps.
+                    Useful for documents where search-based detection is not precise enough.</p>
+            </article>
+            <article class="card">
+                <div class="card__icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </div>
+                <h3 class="card__title">OCR for Scanned Documents</h3>
+                <p class="card__body">For scanned PDFs where the text is stored as an image, Expunge's on-device text
+                    recognition finds the content so you can search and redact it normally.</p>
+            </article>
+        </div>
+    </section>
+
+    <!-- ── Steps ─────────────────────────────────────────────── -->
+    <section class="section" aria-labelledby="steps-heading">
+        <span class="section__label">Process</span>
+        <h2 id="steps-heading" class="section__heading">Redact in Three Steps</h2>
+        <p class="section__sub">No installation, no account, no upload.</p>
+        <div class="steps">
+            <div class="steps__item">
+                <h3>Open Your PDF</h3>
+                <p>Drag your file into Expunge or click to browse. The document loads locally — nothing is sent to any
+                    server at any point.</p>
+            </div>
+            <div class="steps__item">
+                <h3>Mark What to Remove</h3>
+                <p>Use search, draw over regions, or use OCR detection. Highlights show exactly what will be removed
+                    before you commit.</p>
+            </div>
+            <div class="steps__item">
+                <h3>Download the Result</h3>
+                <p>Apply redactions and download. The content is removed from the file data — not covered, not hidden,
+                    removed.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FAQ ───────────────────────────────────────────────── -->
+    <section class="section" aria-labelledby="faq-heading">
+        <span class="section__label">FAQ</span>
+        <h2 id="faq-heading" class="section__heading">Questions About PDF Redaction</h2>
+        <ul class="faq__list" role="list">
+            <li class="faq__item">
+                <details>
+                    <summary>Why does copy-paste still reveal text after I "redacted" a PDF?</summary>
+                    <p>The tool you used likely drew a shape over the text without removing it from the file. The text
+                        is still present in the PDF data — the shape only hides it visually. To check: select text in a
+                        blacked-out area, copy it, and paste into a text editor. If text appears, the redaction was not
+                        applied to the file content.</p>
+                </details>
+            </li>
+            <li class="faq__item">
+                <details>
+                    <summary>What is the difference between covering text and redacting it?</summary>
+                    <p>Covering text adds a visual layer — a shape drawn on top of the page. The underlying characters
+                        remain in the file unchanged. Redaction modifies the file content itself, replacing the
+                        characters with blank space. After proper redaction, the text is simply not in the file.</p>
+                </details>
+            </li>
+            <li class="faq__item">
+                <details>
+                    <summary>Can redacted text be recovered from a PDF processed with Expunge?</summary>
+                    <p>After Expunge rewrites the PDF content, the original characters are not present in the file.
+                        There is nothing to extract because the data has been replaced, not obscured. Tools that only
+                        cover text are a different matter — those are reversible.</p>
+                </details>
+            </li>
+            <li class="faq__item">
+                <details>
+                    <summary>How do I verify the redaction worked?</summary>
+                    <p>Open the downloaded PDF, try to select and copy text from a redacted area, and paste it into a
+                        text editor. Nothing should appear. You can also run the PDF through a text extraction tool and
+                        search for the term you redacted — it will not be found.</p>
+                </details>
+            </li>
+            <li class="faq__item">
+                <details>
+                    <summary>Does Expunge work on scanned PDFs?</summary>
+                    <p>Yes. For scanned documents where text is stored as an image, Expunge includes on-device text
+                        recognition that can detect content and apply redactions to it. The recognition runs locally —
+                        no images are sent anywhere.</p>
+                </details>
+            </li>
+        </ul>
+    </section>
+
+    <!-- ── CTA ───────────────────────────────────────────────── -->
+    <section class="cta-banner" aria-labelledby="cta-heading">
+        <h2 id="cta-heading">Remove Content From the File, Not Just From View</h2>
+        <p>Free, offline, and open source. No account required.</p>
+        <a class="cta-banner__btn" routerLink="/workspace">
+            Open Expunge
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+            </svg>
+        </a>
+    </section>
+
+    <app-landing-footer></app-landing-footer>
+</main>

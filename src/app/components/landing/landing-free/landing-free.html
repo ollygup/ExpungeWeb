@@ -1,0 +1,228 @@
+<main class="landing">
+
+  <!-- ── Nav ───────────────────────────────────────────────── -->
+  <app-landing-header></app-landing-header>
+
+  <!-- ── Hero ──────────────────────────────────────────────── -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="hero__inner">
+      <span class="hero__badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        Always free — no credit card required
+      </span>
+      <h1 id="hero-heading" class="hero__heading">
+        Free PDF Redaction<br>No Signup. No Upload.
+      </h1>
+      <p class="hero__sub">
+        Permanently remove sensitive text, images, and metadata from PDF files — entirely in your browser, entirely
+        free. Expunge never transmits your documents to any server.
+      </p>
+      <div class="hero__actions">
+        <a class="hero__cta hero__cta--primary" routerLink="/workspace">Redact a PDF — Free</a>
+        <a class="hero__cta" href="https://github.com/ollygup/ExpungeWeb" target="_blank" rel="noopener">View Source</a>
+      </div>
+      <p class="hero__note">Open source · AGPL v3 · Zero telemetry</p>
+    </div>
+    <div class="hero__price" aria-hidden="true">
+      <span class="hero__price__amount">£0</span>
+      <span class="hero__price__label">forever</span>
+    </div>
+  </section>
+
+  <!-- ── What's Free ───────────────────────────────────────── -->
+  <section class="section" aria-labelledby="features-heading">
+    <span class="section__label">Everything included</span>
+    <h2 id="features-heading" class="section__heading">Every Feature, Completely Free</h2>
+    <p class="section__sub">No paid tier. No "pro" gating. The full tool is available to everyone, always.</p>
+    <div class="card-grid">
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </div>
+        <h3 class="card__title">Text Search Redaction</h3>
+        <p class="card__body">Search by keyword, phrase, or regular expression. Redact every matching instance across
+          all pages at once — free, without limits.</p>
+      </article>
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M8 12h8M12 8v8" />
+          </svg>
+        </div>
+        <h3 class="card__title">Draw-to-Redact</h3>
+        <p class="card__body">Draw rectangles over any region — text, images, signatures, or stamps. Ideal for scanned
+          documents and complex layouts.</p>
+      </article>
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </div>
+        <h3 class="card__title">OCR-Based Redaction</h3>
+        <p class="card__body">PaddleOCR runs locally to detect text in scanned PDFs and images. Search and redact
+          content invisible to normal PDF tools.</p>
+      </article>
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </div>
+        <h3 class="card__title">True Content Removal</h3>
+        <p class="card__body">MuPDF WASM rewrites the PDF content stream. The original text is not hidden — it is gone.
+          No copy-paste recovery, no metadata leakage.</p>
+      </article>
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="20" rx="2" />
+            <path d="M7 12h10M7 8h10M7 16h6" />
+          </svg>
+        </div>
+        <h3 class="card__title">PDF Watermarking (Beta)</h3>
+        <p class="card__body">Add watermarks with customise text, opacity, angle, and colour — all free.</p>
+      </article>
+      <article class="card">
+        <div class="card__icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        </div>
+        <h3 class="card__title">Instant Download</h3>
+        <p class="card__body">Download your redacted PDF immediately after processing. No watermarks on output, no
+          expiring download links, no email required.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── How It Works ──────────────────────────────────────── -->
+  <section class="section" aria-labelledby="how-heading">
+    <span class="section__label">Process</span>
+    <h2 id="how-heading" class="section__heading">Redact a PDF in Three Steps</h2>
+    <p class="section__sub">No installation. No configuration. Works in any modern browser.</p>
+    <div class="steps">
+      <div class="steps__item">
+        <h3>Open Your PDF</h3>
+        <p>Drag your file onto the app or click to browse. The document loads locally — nothing is uploaded.</p>
+      </div>
+      <div class="steps__item">
+        <h3>Mark What to Remove</h3>
+        <p>Search for text, draw over regions, or let OCR find printed content automatically. Review highlights before
+          committing.</p>
+      </div>
+      <div class="steps__item">
+        <h3>Download the Redacted File</h3>
+        <p>Apply redactions and download. MuPDF permanently removes the content from the PDF stream.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Why Free ──────────────────────────────────────────── -->
+  <section class="section why-free" aria-labelledby="why-heading">
+    <div class="why-free__text">
+      <span class="section__label">Open source</span>
+      <h2 id="why-heading" class="section__heading">Why Is It Free?</h2>
+      <p>Expunge is a hobby project with intention to make redaction accessible and secure, open sourced under AGPL v3.
+        The source code is public, auditable, and free to self-host.</p>
+      <p>There is no freemium model. No usage caps. No ads.</p>
+    </div>
+    <aside class="why-free__stat" aria-label="Cost summary">
+      <dl>
+        <div>
+          <dt>Redactions per month</dt>
+          <dd>Unlimited</dd>
+        </div>
+        <div>
+          <dt>File size limit</dt>
+          <dd>None</dd>
+        </div>
+        <div>
+          <dt>Account required</dt>
+          <dd>No</dd>
+        </div>
+        <div>
+          <dt>Data sent to servers</dt>
+          <dd>None</dd>
+        </div>
+      </dl>
+    </aside>
+  </section>
+
+  <!-- ── FAQ ───────────────────────────────────────────────── -->
+  <section class="section" aria-labelledby="faq-heading">
+    <span class="section__label">FAQ</span>
+    <h2 id="faq-heading" class="section__heading">Frequently Asked Questions</h2>
+    <ul class="faq__list" role="list">
+      <li class="faq__item">
+        <details>
+          <summary>Is Expunge really free to use?</summary>
+          <p>Yes. There are no paid tiers, no feature paywalls, and no account required. The complete redaction suite —
+            text search, draw-to-redact, and OCR-based redaction — is available at no cost.</p>
+        </details>
+      </li>
+      <li class="faq__item">
+        <details>
+          <summary>Do I need to create an account?</summary>
+          <p>No. Expunge requires no account, no email, and no login of any kind. Open the app and start redacting
+            immediately.</p>
+        </details>
+      </li>
+      <li class="faq__item">
+        <details>
+          <summary>Are free online PDF redaction tools safe to use?</summary>
+          <p>Many free tools upload your files to a remote server, which is a significant privacy risk. Expunge
+            processes everything locally in your browser — files are never transmitted, stored externally, or accessed
+            by any third party.</p>
+        </details>
+      </li>
+      <li class="faq__item">
+        <details>
+          <summary>Does free redaction actually remove text permanently?</summary>
+          <p>Expunge uses MuPDF compiled to WebAssembly to perform true content-stream redaction. Unlike tools that draw
+            a black box over text, Expunge removes the underlying characters from the PDF data — recovery is not
+            possible.</p>
+        </details>
+      </li>
+      <li class="faq__item">
+        <details>
+          <summary>Is there a file size or page count limit?</summary>
+          <p>No. Because processing happens in your browser, limits depend on your device's memory rather than a
+            server-imposed cap. Most modern computers handle hundreds of pages without issue.</p>
+        </details>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── CTA ───────────────────────────────────────────────── -->
+  <section class="cta-banner" aria-labelledby="cta-heading">
+    <h2 id="cta-heading">Start Redacting for Free</h2>
+    <p>No account. No upload. No cost. Just open the app and go.</p>
+    <a class="cta-banner__btn" routerLink="/workspace">
+      Open Expunge — Free
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <line x1="5" y1="12" x2="19" y2="12" />
+        <polyline points="12 5 19 12 12 19" />
+      </svg>
+    </a>
+  </section>
+
+  <app-landing-footer></app-landing-footer>
+</main>

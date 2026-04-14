@@ -1,31 +1,7 @@
 <main class="landing">
-
-    <header class="nav">
-        <span class="nav__logo">Expunge</span>
-
-        <button class="nav__burger" [class.nav__burger--open]="menuOpen" (click)="menuOpen = !menuOpen"
-            aria-label="Toggle menu">
-            <span></span><span></span><span></span>
-        </button>
-
-        <nav class="nav__right" [class.nav__right--open]="menuOpen">
-            <a class="nav__right__cta" href="https://github.com/ollygup/ExpungeWeb" target="_blank" rel="noopener">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path
-                        d="M12 .5C5.65.5.5 5.66.5 12.03c0 5.1 3.29 9.42 7.86 10.95.58.1.79-.25.79-.56v-2.02c-3.2.7-3.88-1.54-3.88-1.54-.52-1.34-1.28-1.7-1.28-1.7-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.2 1.76 1.2 1.02 1.76 2.67 1.25 3.32.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.3 1.2-3.12-.12-.3-.52-1.5.12-3.12 0 0 .98-.32 3.2 1.2a11.1 11.1 0 0 1 5.84 0c2.22-1.52 3.2-1.2 3.2-1.2.64 1.62.24 2.82.12 3.12.75.82 1.2 1.86 1.2 3.12 0 4.43-2.69 5.4-5.25 5.68.41.36.77 1.07.77 2.16v3.2c0 .31.21.66.8.55A11.54 11.54 0 0 0 23.5 12C23.5 5.66 18.35.5 12 .5z" />
-                </svg>
-                GitHub
-            </a>
-            <a class="nav__right__cta" href="https://ko-fi.com/ollystudio" target="_blank" rel="noopener">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682-.088-1.682-.088V7.417c.069-.008 1.683-.041 1.683-.041.77.12 1.307.435 1.307.435 1.168.807 1.164 2.986-.037 3.597-.48.239-.959.284-1.271.529z"/>
-                </svg>
-                Support
-            </a>
-            <a class="nav__right__cta nav__right__cta--primary" routerLink="/workspace">Open App</a>
-        </nav>
-    </header>
-
+    
+    <!-- Landing Header -->
+    <app-landing-header></app-landing-header>
 
     <section class="hero">
         <div class="hero__eyebrow">PDF Redaction</div>
@@ -147,26 +123,5 @@
         </div>
     </section>
 
-    <section class="faq-cta">
-        <div class="faq-cta__inner">
-            <span class="faq-cta__label">Have questions?</span>
-            <a class="faq-cta__link" routerLink="/faq">
-                Read the FAQ
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                </svg>
-            </a>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <span>Expunge</span>
-        <span class="footer__sep">·</span>
-        <span>AGPL v3.0</span>
-        <span class="footer__sep">·</span>
-        <a routerLink="/faq">FAQ</a>
-        <span class="footer__sep">·</span>
-        <a href="https://ko-fi.com/ollystudio" target="_blank" rel="noopener">Support on Ko-fi</a>
-    </footer>
+    <app-landing-footer></app-landing-footer>
 </main>
