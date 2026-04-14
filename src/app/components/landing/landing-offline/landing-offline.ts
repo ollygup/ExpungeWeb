@@ -3,11 +3,12 @@ import { Meta, Title } from '@angular/platform-browser';
 import { LandingFooterComponent } from '../shared/landing-footer/landing-footer';
 import { LandingHeaderComponent } from "../shared/landing-header/landing-header";
 import { JsonLdService } from '../../../services/json-ld.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-landing-offline',
   standalone: true,
-  imports: [LandingFooterComponent, LandingHeaderComponent],
+  imports: [RouterLink, LandingFooterComponent, LandingHeaderComponent],
   templateUrl: './landing-offline.html',
   styleUrl: './landing-offline.scss',
 })

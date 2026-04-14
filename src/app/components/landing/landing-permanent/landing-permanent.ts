@@ -3,11 +3,12 @@ import { Meta, Title } from '@angular/platform-browser';
 import { LandingFooterComponent } from "../shared/landing-footer/landing-footer";
 import { LandingHeaderComponent } from "../shared/landing-header/landing-header";
 import { JsonLdService } from '../../../services/json-ld.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-landing-permanent',
   standalone: true,
-  imports: [LandingFooterComponent, LandingHeaderComponent],
+  imports: [RouterLink, LandingFooterComponent, LandingHeaderComponent],
   templateUrl: './landing-permanent.html',
   styleUrl: './landing-permanent.scss',
 })
